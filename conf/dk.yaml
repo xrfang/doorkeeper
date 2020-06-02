@@ -1,0 +1,6 @@
+---
+mode:         #工作模式，必须是"client"或"server"之一
+server:       #服务端配置
+  admin_port: #管理端口
+  serve_port: #服务端口
+client:       #客户端配置
