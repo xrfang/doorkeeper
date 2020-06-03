@@ -1,0 +1,6 @@
+---
+mode: "client"
+client:
+  svr_host: 127.0.0.1
+  name: dev
+  auth: dev-auth-key

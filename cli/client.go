@@ -1,5 +1,10 @@
 package cli
 
+import (
+	"fmt"
+	"net"
+)
+
 type Config struct {
 	Name    string `yaml:"name"`
 	SvrHost string `yaml:"svr_host"`
@@ -8,6 +13,14 @@ type Config struct {
 	MaxConn int    `yaml:"max_conn"`
 }
 
-func Start(cf Config) {
+func connect(addr string) {
+	c, err := net.Dial("tcp", addr)
+	assert(err)
+	fmt.Println("TODO: client connected")
+	c.Close()
+}
 
+func Start(cf Config) {
+	addr := fmt.Sprintf("%s:%d", cf.SvrHost, cf.SvrPort)
+	connect(addr)
 }

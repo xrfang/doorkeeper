@@ -1,0 +1,6 @@
+---
+mode: "server"
+server:
+  otp_key: otp-key
+  auth:
+    dev: dev-auth-key
