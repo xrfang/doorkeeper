@@ -5,6 +5,8 @@ server:             # 服务端配置
   serve_port: 35357 # 服务端口
   handshake: 10     # 握手时间窗口（秒）
   idle_close: 600   # 空闲工作连接时效（秒）
+  tls_cert:         # HTTPS证书
+  tls_pkey:         # HTTPS私钥
   otp_key:          # 控制密钥（用于HTTP API访问）
   auth:             # 通信密钥组（用于客户端认证等）
     #name: shared-key

@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"dk/cli"
+	"dk/svr"
 )
 
 func main() {
@@ -26,5 +29,10 @@ func main() {
 		return
 	}
 	loadConfig(*cfg)
-	fmt.Println("TODO...")
+	switch cf.Mode {
+	case "client":
+		cli.Start(cf.Client)
+	case "server":
+		svr.Start(cf.Server)
+	}
 }

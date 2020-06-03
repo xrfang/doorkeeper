@@ -6,26 +6,16 @@ import (
 	"regexp"
 	"strings"
 
+	"dk/cli"
+	"dk/svr"
+
 	"gopkg.in/yaml.v2"
 )
 
 type config struct {
-	Mode   string `yaml:"mode"`
-	Server struct {
-		AdminPort int               `yaml:"admin_port"`
-		ServePort int               `yaml:"serve_port"`
-		Handshake int               `yaml:"handshake"`
-		IdleClose int               `yaml:"idle_close"`
-		OTPKey    string            `yaml:"otp_key"`
-		Auth      map[string]string `yaml:"auth"`
-	} `yaml:""`
-	Client struct {
-		Name    string `yaml:"name"`
-		SvrHost string `yaml:"svr_host"`
-		SvrPort int    `yaml:"svr_port"`
-		Auth    string `yaml:"auth"`
-		MaxConn int    `yaml:"max_conn"`
-	} `yaml:""`
+	Mode   string     `yaml:"mode"`
+	Server svr.Config `yaml:"server"`
+	Client cli.Config `yaml:"client"`
 }
 
 var cf config

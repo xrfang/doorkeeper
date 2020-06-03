@@ -6,8 +6,14 @@ arm: export GOOS=linux
 arm: export GOARCH=arm
 arm: export GOARM=7
 arm: release
-debug: setver compdbg
-release: setver comprel
+debug: setver geneh compdbg
+release: setver geneh comprel
+geneh: #generate error handler
+	@for tpl in `find . -type f |grep errors.tpl`; do \
+        target=`echo $$tpl|sed 's/\.tpl/\.go/'`; \
+        pkg=`basename $$(dirname $$tpl)`; \
+        sed "s/package main/package $$pkg/" errors.go > $$target; \
+    done
 setver:
 	cp verinfo.tpl version.go
 	sed -i 's/{_BRANCH}/$(BRANCH)/' version.go
