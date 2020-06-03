@@ -3,13 +3,14 @@ mode:               # 工作模式，必须是"client"或"server"之一
 server:             # 服务端配置
   admin_port: 3535  # 管理端口（HTTP API）
   serve_port: 35357 # 服务端口
-  handshake: 5000   # 握手时间窗口（毫秒）
-  idle_close: 5     # 空闲工作连接时效（分钟）
+  handshake: 10     # 握手时间窗口（秒）
+  idle_close: 600   # 空闲工作连接时效（秒）
   otp_key:          # 控制密钥（用于HTTP API访问）
   auth:             # 通信密钥组（用于客户端认证等）
     #name: shared-key
 client:             # 客户端配置
-  remote:           # 服务端（DKS）的地址（<ip/domain>[:port]）
+  svr_host:         # 服务端（DKS）的地址（IP或域名）
+  svr_port: 35357   # 服务端（DKS）的服务端口
   name:             # 客户端名称
   auth:             # 共享密钥
   max_conn: 9       # 最大连接数
