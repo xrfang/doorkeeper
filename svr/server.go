@@ -12,6 +12,7 @@ type Config struct {
 	ServePort int               `yaml:"serve_port"`
 	Handshake int               `yaml:"handshake"`
 	IdleClose int               `yaml:"idle_close"`
+	AuthTime  int               `yaml:"auth_time"`
 	OTPKey    string            `yaml:"otp_key"`
 	Auth      map[string]string `yaml:"auth"`
 	TLSCert   string            `yaml:"tls_cert"`
@@ -31,6 +32,8 @@ func Start(cf Config) {
 			assert(adm.ListenAndServe())
 		}
 	}()
+	sm.Init(cf)
+	ra.Init(cf)
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", cf.ServePort))
 	assert(err)
 	for {
@@ -40,6 +43,11 @@ func Start(cf Config) {
 			time.Sleep(time.Second)
 			continue
 		}
-		go handle(conn)
+		go func(c net.Conn) {
+			if ra.Connect(c) {
+				//TODO: RELAY...
+			}
+			sm.Validate(c)
+		}(conn)
 	}
 }

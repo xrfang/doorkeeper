@@ -52,6 +52,9 @@ func loadConfig(fn string) {
 		if cf.Server.IdleClose <= 0 || cf.Server.IdleClose > 3600 {
 			cf.Server.IdleClose = 600
 		}
+		if cf.Server.AuthTime <= 0 || cf.Server.AuthTime > 86400 {
+			cf.Server.AuthTime = 3600
+		}
 		if cf.Server.OTPKey == "" {
 			panic(fmt.Errorf("loadConfig: server.otp_key not set"))
 		}

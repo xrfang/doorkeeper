@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"net"
+	"time"
 )
 
 type Config struct {
@@ -17,6 +18,8 @@ func connect(addr string) {
 	c, err := net.Dial("tcp", addr)
 	assert(err)
 	fmt.Println("TODO: client connected")
+	time.Sleep(2 * time.Second)
+	c.Write([]byte("abcde"))
 	c.Close()
 }
 
