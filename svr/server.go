@@ -44,8 +44,9 @@ func Start(cf Config) {
 			continue
 		}
 		go func(c net.Conn) {
-			if ra.Connect(c) {
-				//TODO: RELAY...
+			if t := ra.Connect(c); t != nil {
+				sm.Relay(c, t)
+				return
 			}
 			sm.Validate(c)
 		}(conn)

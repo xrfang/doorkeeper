@@ -10,7 +10,10 @@ import (
 type backend struct {
 	main net.Conn
 	clis []net.Conn
+	sync.Mutex
 }
+
+//TODO: 考虑backend的连接管理
 
 type serviceMgr struct {
 	handshake time.Duration
@@ -43,6 +46,18 @@ func (sm *serviceMgr) Validate(conn net.Conn) {
 	conn.SetReadDeadline(time.Time{})
 	fmt.Printf("TODO: validate: received: %x\n", buf[:n])
 	return
+}
+
+func (sm *serviceMgr) Relay(conn net.Conn, token *accessToken) {
+	sm.Lock()
+	defer sm.Unlock()
+	b := sm.backends[token.dst]
+	if b == nil {
+		//TODO: log
+		conn.Close()
+		return
+	}
+	//TODO: 将连接添加进交换组
 }
 
 var sm serviceMgr

@@ -7,8 +7,9 @@ import (
 )
 
 type accessToken struct {
-	dst     net.TCPAddr
-	ref     int //引用计数
+	dst     string      //DKC所在网络的名称
+	addr    net.TCPAddr //需访问的DKC网络内的主机地址
+	ref     int         //引用计数
 	created time.Time
 	updated time.Time
 }
@@ -20,24 +21,24 @@ type remoteAdmin struct {
 	sync.Mutex
 }
 
-func (ra *remoteAdmin) Register(src string, dst net.TCPAddr) {
+func (ra *remoteAdmin) Register(src, dst string, addr net.TCPAddr) {
 	ra.Lock()
 	defer ra.Unlock()
-	ra.tokens[src] = &accessToken{dst: dst, created: time.Now()}
+	ra.tokens[src] = &accessToken{dst: dst, addr: addr, created: time.Now()}
 }
 
-func (ra *remoteAdmin) Connect(conn net.Conn) bool {
+func (ra *remoteAdmin) Connect(conn net.Conn) *accessToken {
 	ra.Lock()
 	defer ra.Unlock()
 	p := conn.RemoteAddr().(*net.TCPAddr)
 	src := p.IP.String()
 	t := ra.tokens[src]
 	if t == nil {
-		return false
+		return nil
 	}
 	t.ref++
 	ra.tokens[src] = t
-	return true
+	return t
 }
 
 func (ra *remoteAdmin) Disconnect(conn net.Conn) {
