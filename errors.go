@@ -38,7 +38,7 @@ func trace(msg string, args ...interface{}) error {
 		if strings.HasPrefix(name, "runtime.") {
 			continue
 		}
-		fn := file[strings.Index(file, "/src/")+5:]
+		fn := file[strings.Index(file, "/PKGNAME/")+1:]
 		ex = append(ex, fmt.Sprintf("\t(%s:%d) %s", fn, line, name))
 	}
 	return ex

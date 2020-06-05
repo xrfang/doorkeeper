@@ -13,6 +13,7 @@ geneh: #generate error handler
         target=`echo $$tpl|sed 's/\.tpl/\.go/'`; \
         pkg=`basename $$(dirname $$tpl)`; \
         sed "s/package main/package $$pkg/" errors.go > $$target; \
+		sed -i "s/PKGNAME/$$pkg/" $$target; \
     done
 setver:
 	cp verinfo.tpl version.go
