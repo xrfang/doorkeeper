@@ -6,12 +6,14 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	"dk/base"
 )
 
 type backend struct {
 	live bool
 	serv *net.TCPConn
-	send chan chunk
+	send chan base.Chunk
 	clis map[string]*net.TCPConn
 	sync.Mutex
 }
@@ -70,10 +72,10 @@ func (b *backend) addClient(conn net.Conn) {
 			buf := make([]byte, 4096)
 			n, err := c.Read(buf)
 			assert(err)
-			b.send <- chunk{
-				src: src,
-				dst: at.addr,
-				buf: buf[:n],
+			b.send <- base.Chunk{
+				Src: src,
+				Dst: at.addr,
+				Buf: buf[:n],
 			}
 		}
 	}(conn.(*net.TCPConn))
@@ -89,23 +91,20 @@ func (b *backend) Run() {
 			}
 		}()
 		for b.isAlive() {
-			c := b.recvChunk()
-			if c == nil {
-				b.setLive(false)
-				break
-			}
-			tag := c.dst.String()
+			var c base.Chunk
+			assert(c.Recv(b.serv))
+			tag := c.Dst.String()
 			cli := b.clis[tag]
-			if cli == nil { //local disconnected, notify DKC
-				b.sendChunk(chunk{src: c.dst, dst: c.src})
+			if cli == nil { //local disconnected, notify DKC by send an empty chunk
+				base.Chunk{Src: c.Dst, Dst: c.Src}.Send(b.serv)
 				continue
 			}
-			if len(c.buf) == 0 { //DKC disconnected
+			if len(c.Buf) == 0 { //empty buf means DKC disconnected
 				cli.Close()         //close remote connection
 				delete(b.clis, tag) //unregister connection
 				continue
 			}
-			_, err := cli.Write(c.buf)
+			_, err := cli.Write(c.Buf)
 			assert(err)
 		}
 	}()
@@ -119,7 +118,7 @@ func (b *backend) Run() {
 		for b.isAlive() {
 			select {
 			case c := <-b.send:
-				b.sendChunk(c)
+				c.Send(b.serv)
 			case <-time.After(time.Second):
 			}
 		}

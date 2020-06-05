@@ -90,7 +90,7 @@ func (sm *serviceMgr) Validate(conn net.Conn) {
 	}
 	b = &backend{
 		serv: conn.(*net.TCPConn),
-		send: make(chan chunk),
+		send: make(chan base.Chunk),
 		clis: make(map[string]*net.TCPConn),
 	}
 	sm.backends[name] = b
