@@ -1,6 +1,8 @@
 package svr
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"fmt"
 	"net"
 	"sync"
@@ -8,14 +10,35 @@ import (
 )
 
 type serviceMgr struct {
+	auth      map[string]string
 	handshake time.Duration
 	backends  map[string]*backend
 	sync.Mutex
 }
 
+func (sm *serviceMgr) Authenticate(mac []byte) string {
+	for name, key := range sm.auth {
+		var match bool
+		h := hmac.New(sha256.New, []byte(key))
+		h.Write([]byte(name))
+		res := h.Sum(nil)
+		for i, c := range mac {
+			match = res[i] == c
+			if !match {
+				break
+			}
+		}
+		if match {
+			return name
+		}
+	}
+	return ""
+}
+
 func (sm *serviceMgr) Init(cf Config) {
 	sm.Lock()
 	defer sm.Unlock()
+	sm.auth = cf.Auth
 	sm.handshake = time.Duration(cf.Handshake) * time.Second
 	sm.backends = make(map[string]*backend)
 	go func() {
@@ -50,12 +73,12 @@ func (sm *serviceMgr) Validate(conn net.Conn) {
 		return
 	}
 	assert(conn.SetReadDeadline(time.Time{}))
-	//TODO: HMAC-SHA256 validation
-	if string(buf[:n]) != "HELLO" {
+	name := sm.Authenticate(buf[:n])
+	if name == "" {
+		fmt.Println("TODO: hmac check error, disconnecting...")
 		conn.Close()
 		return
 	}
-	name := conn.RemoteAddr().String() //TODO: 使用客户端名称而非IP地址
 	sm.Lock()
 	defer sm.Unlock()
 	b := sm.backends[name]
