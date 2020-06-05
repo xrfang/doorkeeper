@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"dk/utils"
+	"dk/base"
 )
 
 type serviceMgr struct {
@@ -22,7 +22,7 @@ func (sm *serviceMgr) Authenticate(mac []byte) string {
 	}
 	for name, key := range sm.auth {
 		var match bool
-		res := utils.Authenticate(mac[:16], name, key)
+		res := base.Authenticate(mac[:16], name, key)
 		for i, c := range mac {
 			match = res[i] == c
 			if !match {

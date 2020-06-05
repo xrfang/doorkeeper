@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"dk/utils"
+	"dk/base"
 	"fmt"
 	"net"
 )
@@ -19,7 +19,7 @@ func connect(cf Config) {
 	c, err := net.Dial("tcp", addr)
 	assert(err)
 	fmt.Println("TODO: client connected")
-	handshake := utils.Authenticate(nil, cf.Name, cf.Auth)
+	handshake := base.Authenticate(nil, cf.Name, cf.Auth)
 	c.Write(handshake)
 	c.Close()
 }
