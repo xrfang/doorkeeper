@@ -1,6 +1,7 @@
 package svr
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"sync"
@@ -8,56 +9,119 @@ import (
 )
 
 type backend struct {
-	main net.Conn
-	clis []net.Conn
+	live bool
+	serv *net.TCPConn
+	send chan chunk
+	clis map[string]*net.TCPConn
 	sync.Mutex
 }
 
-//TODO: 考虑backend的连接管理
-
-type serviceMgr struct {
-	handshake time.Duration
-	backends  map[string]*backend
-	sync.Mutex
+func (b *backend) destroy() {
+	b.Lock()
+	defer b.Unlock()
+	b.serv.Close()
+	for _, c := range b.clis {
+		c.Close()
+	}
 }
 
-func (sm *serviceMgr) Init(cf Config) {
-	sm.Lock()
-	defer sm.Unlock()
-	sm.handshake = time.Duration(cf.Handshake) * time.Second
-	sm.backends = make(map[string]*backend)
-	//TODO: clean-up routine here
+func (b *backend) setLive(live bool) {
+	b.Lock()
+	defer b.Unlock()
+	b.live = live
 }
 
-func (sm *serviceMgr) Validate(conn net.Conn) {
-	conn.SetDeadline(time.Now().Add(sm.handshake))
-	buf := make([]byte, 1024)
-	n, err := conn.Read(buf)
-	if err != nil {
-		err, ok := err.(net.Error)
-		if !ok || !err.Timeout() {
-			fmt.Printf("TODO: log error %v\n", err)
-		} else {
-			fmt.Printf("TODO: log timeout waiting handshake\n")
+func (b *backend) isAlive() bool {
+	b.Lock()
+	defer b.Unlock()
+	return b.live
+}
+
+func (b *backend) delClient(conn *net.TCPConn) {
+	b.Lock()
+	defer b.Unlock()
+	tag := conn.RemoteAddr().String()
+	delete(b.clis, tag)
+	conn.Close()
+}
+
+func (b *backend) addClient(conn net.Conn) {
+	b.Lock()
+	defer b.Unlock()
+	tag := conn.RemoteAddr().String()
+	c := b.clis[tag]
+	if c != nil {
+		c.Close()
+	}
+	b.clis[tag] = conn.(*net.TCPConn)
+	go func(c *net.TCPConn) { //从本地端读入原始数据，装配成chunk
+		defer func() {
+			if e := recover(); e != nil {
+				fmt.Println(trace("TODO: client recv: %v", e))
+				b.delClient(c)
+			}
+		}()
+		src := c.RemoteAddr().(*net.TCPAddr)
+		at := ra.Lookup(src.IP)
+		if at == nil {
+			panic(errors.New("no access"))
 		}
-		conn.Close()
-		return
-	}
-	conn.SetReadDeadline(time.Time{})
-	fmt.Printf("TODO: validate: received: %x\n", buf[:n])
-	return
+		for {
+			buf := make([]byte, 4096)
+			n, err := c.Read(buf)
+			assert(err)
+			b.send <- chunk{
+				src: src,
+				dst: at.addr,
+				buf: buf[:n],
+			}
+		}
+	}(conn.(*net.TCPConn))
 }
 
-func (sm *serviceMgr) Relay(conn net.Conn, token *accessToken) {
-	sm.Lock()
-	defer sm.Unlock()
-	b := sm.backends[token.dst]
-	if b == nil {
-		//TODO: log
-		conn.Close()
-		return
-	}
-	//TODO: 将连接添加进交换组
+func (b *backend) Run() {
+	b.setLive(true)
+	go func() {
+		defer func() {
+			if e := recover(); e != nil {
+				fmt.Println(trace("TODO: %v", e))
+				b.setLive(false)
+			}
+		}()
+		for b.isAlive() {
+			c := b.recvChunk()
+			if c == nil {
+				b.setLive(false)
+				break
+			}
+			tag := c.dst.String()
+			cli := b.clis[tag]
+			if cli == nil { //local disconnected, notify DKC
+				b.sendChunk(chunk{src: c.dst, dst: c.src})
+				continue
+			}
+			if len(c.buf) == 0 { //DKC disconnected
+				cli.Close()         //close remote connection
+				delete(b.clis, tag) //unregister connection
+				continue
+			}
+			_, err := cli.Write(c.buf)
+			assert(err)
+		}
+	}()
+	go func() {
+		defer func() {
+			if e := recover(); e != nil {
+				fmt.Println(trace("TODO: %v", e))
+				b.setLive(false)
+			}
+		}()
+		for b.isAlive() {
+			select {
+			case c := <-b.send:
+				b.sendChunk(c)
+			case <-time.After(time.Second):
+			}
+		}
+	}()
 }
-
-var sm serviceMgr
