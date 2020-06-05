@@ -1,9 +1,9 @@
 package cli
 
 import (
+	"dk/utils"
 	"fmt"
 	"net"
-	"time"
 )
 
 type Config struct {
@@ -14,16 +14,16 @@ type Config struct {
 	MaxConn int    `yaml:"max_conn"`
 }
 
-func connect(addr string) {
+func connect(cf Config) {
+	addr := fmt.Sprintf("%s:%d", cf.SvrHost, cf.SvrPort)
 	c, err := net.Dial("tcp", addr)
 	assert(err)
 	fmt.Println("TODO: client connected")
-	time.Sleep(2 * time.Second)
-	c.Write([]byte("abcde"))
+	handshake := utils.Authenticate(nil, cf.Name, cf.Auth)
+	c.Write(handshake)
 	c.Close()
 }
 
 func Start(cf Config) {
-	addr := fmt.Sprintf("%s:%d", cf.SvrHost, cf.SvrPort)
-	connect(addr)
+	connect(cf)
 }

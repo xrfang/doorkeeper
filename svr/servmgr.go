@@ -1,12 +1,12 @@
 package svr
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
 	"fmt"
 	"net"
 	"sync"
 	"time"
+
+	"dk/utils"
 )
 
 type serviceMgr struct {
@@ -17,11 +17,12 @@ type serviceMgr struct {
 }
 
 func (sm *serviceMgr) Authenticate(mac []byte) string {
+	if len(mac) != 32 {
+		return ""
+	}
 	for name, key := range sm.auth {
 		var match bool
-		h := hmac.New(sha256.New, []byte(key))
-		h.Write([]byte(name))
-		res := h.Sum(nil)
+		res := utils.Authenticate(mac[:16], name, key)
 		for i, c := range mac {
 			match = res[i] == c
 			if !match {
@@ -79,6 +80,7 @@ func (sm *serviceMgr) Validate(conn net.Conn) {
 		conn.Close()
 		return
 	}
+	fmt.Println("TODO: handshake successful")
 	sm.Lock()
 	defer sm.Unlock()
 	b := sm.backends[name]
