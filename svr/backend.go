@@ -39,7 +39,7 @@ func (b *backend) isAlive() bool {
 	return b.live
 }
 
-func (b *backend) delClient(conn *net.TCPConn) {
+func (b *backend) delConn(conn *net.TCPConn) {
 	b.Lock()
 	defer b.Unlock()
 	tag := conn.RemoteAddr().String()
@@ -47,7 +47,7 @@ func (b *backend) delClient(conn *net.TCPConn) {
 	conn.Close()
 }
 
-func (b *backend) addClient(conn net.Conn) {
+func (b *backend) addConn(conn net.Conn) {
 	b.Lock()
 	defer b.Unlock()
 	tag := conn.RemoteAddr().String()
@@ -60,7 +60,7 @@ func (b *backend) addClient(conn net.Conn) {
 		defer func() {
 			if e := recover(); e != nil {
 				fmt.Println(trace("TODO: client recv: %v", e))
-				b.delClient(c)
+				b.delConn(c)
 			}
 		}()
 		src := c.RemoteAddr().(*net.TCPAddr)
@@ -95,17 +95,23 @@ func (b *backend) Run() {
 			assert(c.Recv(b.serv))
 			tag := c.Dst.String()
 			cli := b.clis[tag]
-			if cli == nil { //local disconnected, notify DKC by send an empty chunk
-				base.Chunk{Src: c.Dst, Dst: c.Src}.Send(b.serv)
+			if cli == nil {
+				rep := base.Chunk{
+					Type: base.CT_CLS, //local disconnected, notify DKC
+					Src:  c.Dst,
+					Dst:  c.Src,
+				}
+				rep.Send(b.serv)
 				continue
 			}
-			if len(c.Buf) == 0 { //empty buf means DKC disconnected
+			switch c.Type {
+			case base.CT_CLS: //DKC disconnected
 				cli.Close()         //close remote connection
 				delete(b.clis, tag) //unregister connection
-				continue
+			case base.CT_DAT: //data transfer
+				_, err := cli.Write(c.Buf)
+				assert(err)
 			}
-			_, err := cli.Write(c.Buf)
-			assert(err)
 		}
 	}()
 	go func() {

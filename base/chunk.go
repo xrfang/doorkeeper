@@ -1,43 +1,57 @@
 package base
 
 import (
+	"bytes"
 	"encoding/binary"
-	"errors"
 	"io"
 	"net"
-	"strconv"
-	"strings"
 	"time"
 )
 
-type Chunk struct {
-	Src *net.TCPAddr
-	Dst *net.TCPAddr
-	Buf []byte
-}
+const (
+	CT_CLS = 0 //关闭连接
+	CT_DAT = 1 //数据传输
+	CT_QRY = 2 //询问开放端口
+	CT_PNG = 3 //通道心跳检测
+)
 
-func parseAddr(addr string) *net.TCPAddr {
-	h, p, err := net.SplitHostPort(addr)
-	assert(err)
-	ip := net.ParseIP(h)
-	if ip == nil {
-		panic("invalid IP address")
-	}
-	port, _ := strconv.Atoi(p)
-	return &net.TCPAddr{IP: ip, Port: port}
+type Chunk struct {
+	Type byte
+	Src  *net.TCPAddr
+	Dst  *net.TCPAddr
+	Buf  []byte
 }
 
 func (c Chunk) Serialize() []byte {
-	buf := []byte{0, 0}
-	buf = append(buf, []byte(c.Src.String())...)
-	buf = append(buf, '\n')
-	buf = append(buf, []byte(c.Dst.String())...)
-	if len(c.Buf) > 0 {
-		buf = append(buf, '\n')
-		buf = append(buf, c.Buf...)
+	var tag byte
+	switch c.Type {
+	case CT_DAT:
+		tag = 0x40 //0100 0000
+	case CT_QRY:
+		tag = 0x80 //1000 0000
+	case CT_PNG:
+		tag = 0xC0 //1100 0000
 	}
-	binary.BigEndian.PutUint16(buf, uint16(len(buf)-2))
-	return buf
+	buf := bytes.NewBuffer(nil)
+	putIP := func(ip net.IP, v6Mark byte) {
+		p := ip.To4()
+		if p == nil {
+			buf.Write([]byte(ip))
+			tag |= v6Mark
+			return
+		}
+		buf.Write([]byte(p))
+	}
+	buf.Write([]byte{0, 0})
+	binary.Write(buf, binary.BigEndian, uint16(c.Src.Port))
+	putIP(c.Src.IP, 0x20)
+	binary.Write(buf, binary.BigEndian, uint16(c.Dst.Port))
+	putIP(c.Dst.IP, 0x10)
+	buf.Write(c.Buf)
+	res := buf.Bytes()
+	binary.BigEndian.PutUint16(res, uint16(len(c.Buf)))
+	res[0] = res[0] | tag
+	return res
 }
 
 func (c *Chunk) Recv(conn *net.TCPConn) (err error) {
@@ -51,26 +65,28 @@ func (c *Chunk) Recv(conn *net.TCPConn) (err error) {
 		assert(conn.SetReadDeadline(time.Time{}))
 	}()
 	buf := make([]byte, 4096)
+	getAddr := func(isV6 bool) *net.TCPAddr {
+		var addr net.TCPAddr
+		alen := 6 //port + IPv4长度
+		if isV6 {
+			alen = 18 //port + IPv6长度
+		}
+		_, err := io.ReadFull(conn, buf[:alen])
+		assert(err)
+		addr.Port = (int(buf[0]) << 8) + int(buf[1])
+		addr.IP = net.IP(buf[2:])
+		return &addr
+	}
 	_, err = io.ReadFull(conn, buf[:2])
 	assert(err)
-	clen := int(binary.BigEndian.Uint16(buf[:2]))
-	data := make([]byte, clen)
-	for {
-		n, err := conn.Read(buf)
-		assert(err)
-		data = append(data, buf[:n]...)
-		clen -= n
-		if clen <= 0 {
-			break
-		}
-	}
-	cs := strings.SplitN(string(data), "\n", 3)
-	if len(cs) != 3 {
-		panic(errors.New("invalid chunk format"))
-	}
-	c.Src = parseAddr(cs[0])
-	c.Dst = parseAddr(cs[1])
-	c.Buf = []byte(cs[2])
+	tag := buf[0] >> 4
+	blen := (uint16(buf[0]&0xF) << 8) + uint16(buf[1])
+	c.Type = tag >> 2
+	c.Src = getAddr((tag & 2) != 0)
+	c.Dst = getAddr((tag & 1) != 0)
+	_, err = io.ReadFull(conn, buf[:blen])
+	assert(err)
+	c.Buf = buf[:blen]
 	return
 }
 

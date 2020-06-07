@@ -107,7 +107,7 @@ func (sm *serviceMgr) Relay(conn net.Conn, token *accessToken) {
 		conn.Close()
 		return
 	}
-	b.addClient(conn)
+	b.addConn(conn)
 }
 
 var sm serviceMgr
