@@ -74,7 +74,9 @@ func (c *Chunk) Recv(conn *net.TCPConn) (err error) {
 		_, err := io.ReadFull(conn, buf[:alen])
 		assert(err)
 		addr.Port = (int(buf[0]) << 8) + int(buf[1])
-		addr.IP = net.IP(buf[2:])
+		ip := make([]byte, alen-2)
+		copy(ip, buf[2:alen])
+		addr.IP = net.IP(ip)
 		return &addr
 	}
 	_, err = io.ReadFull(conn, buf[:2])

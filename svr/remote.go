@@ -1,6 +1,7 @@
 package svr
 
 import (
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -24,7 +25,12 @@ type remoteAdmin struct {
 func (ra *remoteAdmin) Register(src, dst string, addr *net.TCPAddr) {
 	ra.Lock()
 	defer ra.Unlock()
-	ra.tokens[src] = &accessToken{dst: dst, addr: addr, created: time.Now()}
+	ra.tokens[src] = &accessToken{
+		dst:     dst,
+		addr:    addr,
+		created: time.Now(),
+		updated: time.Now(),
+	}
 }
 
 func (ra *remoteAdmin) Lookup(ip net.IP) *accessToken {
@@ -77,8 +83,16 @@ func (ra *remoteAdmin) Init(cf Config) {
 						ra.tokens[s] = t
 						continue
 					}
-					if time.Since(t.updated) > ra.maxIdle ||
-						time.Since(t.created) > ra.maxLife {
+					remove := false
+					if time.Since(t.updated) > ra.maxIdle {
+						fmt.Println("TODO: log token idle timeout")
+						remove = true
+					}
+					if time.Since(t.created) > ra.maxLife {
+						fmt.Println("TODO: log token end of life")
+						remove = true
+					}
+					if remove {
 						delete(ra.tokens, s)
 					}
 				}

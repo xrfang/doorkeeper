@@ -73,9 +73,10 @@ func (b *backend) addConn(conn net.Conn) {
 			n, err := c.Read(buf)
 			assert(err)
 			b.send <- base.Chunk{
-				Src: src,
-				Dst: at.addr,
-				Buf: buf[:n],
+				Type: base.CT_DAT,
+				Src:  src,
+				Dst:  at.addr,
+				Buf:  buf[:n],
 			}
 		}
 	}(conn.(*net.TCPConn))
