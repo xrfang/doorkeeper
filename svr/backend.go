@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"sync"
-	"time"
 
 	"dk/base"
 )
@@ -13,7 +12,6 @@ import (
 type backend struct {
 	live bool
 	serv *net.TCPConn
-	send chan base.Chunk
 	clis map[string]*net.TCPConn
 	sync.Mutex
 }
@@ -72,12 +70,13 @@ func (b *backend) addConn(conn net.Conn) {
 			buf := make([]byte, 4096)
 			n, err := c.Read(buf)
 			assert(err)
-			b.send <- base.Chunk{
+			c := base.Chunk{
 				Type: base.CT_DAT,
 				Src:  src,
 				Dst:  at.addr,
 				Buf:  buf[:n],
 			}
+			c.Send(b.serv)
 		}
 	}(conn.(*net.TCPConn))
 }
@@ -112,21 +111,6 @@ func (b *backend) Run() {
 			case base.CT_DAT: //data transfer
 				_, err := cli.Write(c.Buf)
 				assert(err)
-			}
-		}
-	}()
-	go func() {
-		defer func() {
-			if e := recover(); e != nil {
-				fmt.Println(trace("TODO: %v", e))
-				b.setLive(false)
-			}
-		}()
-		for b.isAlive() {
-			select {
-			case c := <-b.send:
-				c.Send(b.serv)
-			case <-time.After(time.Second):
 			}
 		}
 	}()
