@@ -62,8 +62,11 @@ func loadConfig(fn string) {
 		if cf.Server.AuthTime <= 0 || cf.Server.AuthTime > 86400 {
 			cf.Server.AuthTime = 3600
 		}
-		if cf.Server.OTPKey == "" {
-			panic(fmt.Errorf("loadConfig: server.otp_key not set"))
+		if cf.Server.OTP.Account == "" {
+			cf.Server.OTP.Account = "-"
+		}
+		if cf.Server.OTP.Issuer == "" {
+			cf.Server.OTP.Issuer = "Door Keeper"
 		}
 		if cf.Server.Auth == nil || len(cf.Server.Auth) == 0 {
 			panic(fmt.Errorf("loadConfig: server.auth not set"))

@@ -8,13 +8,17 @@ import (
 )
 
 type Config struct {
-	AdminPort int               `yaml:"admin_port"`
-	ServePort int               `yaml:"serve_port"`
-	Handshake int               `yaml:"handshake"`
-	IdleClose int               `yaml:"idle_close"`
-	AuthTime  int               `yaml:"auth_time"`
-	OTPKey    string            `yaml:"otp_key"`
-	Auth      map[string]string `yaml:"auth"`
+	AdminPort int `yaml:"admin_port"`
+	ServePort int `yaml:"serve_port"`
+	Handshake int `yaml:"handshake"`
+	IdleClose int `yaml:"idle_close"`
+	AuthTime  int `yaml:"auth_time"`
+	OTP       struct {
+		Account string `yaml:"account"`
+		Issuer  string `yaml:"issuer"`
+		Key     string `yaml:"key"`
+	} `yaml:"otp"`
+	Auth map[string]string `yaml:"auth"`
 }
 
 func Start(cf Config) {
