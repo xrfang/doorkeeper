@@ -1,13 +1,13 @@
 ---
 mode:               # 工作模式，必须是"client"或"server"之一
+debug: false        # 调试模式（输出更多log信息）
+ulimit: 1024        # 最大句柄数量（一般无需调整）
 server:             # 服务端配置
   admin_port: 3535  # 管理端口（HTTP API）
   serve_port: 35357 # 服务端口
   handshake: 10     # 握手时间窗口（秒）
   idle_close: 600   # 空闲工作连接时效（秒）
   auth_time: 3600   # 连接授权最长时限（秒）
-  tls_cert:         # HTTPS证书
-  tls_pkey:         # HTTPS私钥
   otp_key:          # 控制密钥（用于HTTP API访问）
   auth:             # 通信密钥组（用于客户端认证等）
     #name: shared-key
@@ -17,3 +17,7 @@ client:             # 客户端配置
   name:             # 客户端名称
   auth:             # 共享密钥
   max_conn: 9       # 最大连接数
+logging:
+  path: ../log      # LOG文件目录（相对目录基于本配置文件）
+  split: 1048576    # 最大LOG字节数（超过则切分）
+  keep: 10          # 保留LOG文件数（超过删除最老的）

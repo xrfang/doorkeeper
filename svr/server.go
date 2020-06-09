@@ -15,8 +15,6 @@ type Config struct {
 	AuthTime  int               `yaml:"auth_time"`
 	OTPKey    string            `yaml:"otp_key"`
 	Auth      map[string]string `yaml:"auth"`
-	TLSCert   string            `yaml:"tls_cert"`
-	TLSPKey   string            `yaml:"tls_pkey"`
 }
 
 func Start(cf Config) {
@@ -26,11 +24,7 @@ func Start(cf Config) {
 		WriteTimeout: time.Minute,
 	}
 	go func() {
-		if cf.TLSCert != "" && cf.TLSPKey != "" {
-			assert(adm.ListenAndServeTLS(cf.TLSCert, cf.TLSPKey))
-		} else {
-			assert(adm.ListenAndServe())
-		}
+		assert(adm.ListenAndServe())
 	}()
 	sm.Init(cf)
 	ra.Init(cf)

@@ -116,7 +116,7 @@ func (p *proxy) run(cf Config) {
 	p.serv.Write(handshake)
 	for p.isAlive() {
 		var c base.Chunk
-		assert(c.Recv(p.serv))
+		c.Recv(p.serv)
 		switch c.Type {
 		case base.CT_CLS:
 			p.delConns(c.Src.IP.String())

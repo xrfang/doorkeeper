@@ -14,7 +14,7 @@ import (
 
 const LOG_FN = "log"
 
-type StdLogger struct {
+type stdLogger struct {
 	dbgMode bool
 	path    string
 	size    int
@@ -23,13 +23,13 @@ type StdLogger struct {
 	sync.Mutex
 }
 
-func NewLogger(path string, split, keep int) *StdLogger {
+func newLogger(path string, split, keep int) *stdLogger {
 	if path != "" {
 		path, err := filepath.Abs(path)
 		assert(err)
 		assert(os.MkdirAll(path, 0750))
 	}
-	sl := StdLogger{path: path, size: split, keep: keep}
+	sl := stdLogger{path: path, size: split, keep: keep}
 	go func() {
 		for {
 			time.Sleep(time.Second)
@@ -42,11 +42,11 @@ func NewLogger(path string, split, keep int) *StdLogger {
 	return &sl
 }
 
-func (sl *StdLogger) SetDebug(mode bool) {
+func (sl *stdLogger) setDebug(mode bool) {
 	sl.dbgMode = mode
 }
 
-func (sl StdLogger) fmt(format string, args ...interface{}) []string {
+func (sl stdLogger) fmt(format string, args ...interface{}) []string {
 	ts := time.Now().Format("2006-01-02 15:04:05 ")
 	pad := strings.Repeat(" ", len(ts))
 	var msg []string
@@ -64,10 +64,10 @@ func (sl StdLogger) fmt(format string, args ...interface{}) []string {
 	return msg
 }
 
-func (sl StdLogger) split(fn string) {
+func (sl stdLogger) split(fn string) {
 	defer func() {
 		if e := recover(); e != nil {
-			err := trace("[ERROR]StdLogger.split: %v", e)
+			err := trace("[ERROR]stdLogger.split: %v", e)
 			fmt.Fprintln(os.Stderr, err)
 		}
 	}()
@@ -80,7 +80,7 @@ func (sl StdLogger) split(fn string) {
 	go func(fn string) {
 		defer func() {
 			if e := recover(); e != nil {
-				err := trace("[ERROR]StdLogger.split.gzip: %v", e)
+				err := trace("[ERROR]stdLogger.split.gzip: %v", e)
 				fmt.Fprintln(os.Stderr, err)
 				return
 			}
@@ -101,7 +101,7 @@ func (sl StdLogger) split(fn string) {
 	}(dest)
 }
 
-func (sl *StdLogger) persist() {
+func (sl *stdLogger) persist() {
 	if sl.path == "" {
 		return
 	}
@@ -109,7 +109,7 @@ func (sl *StdLogger) persist() {
 	sl.split(fn)
 	f, err := os.OpenFile(fn, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "[ERROR]StdLogger.persist:", err)
+		fmt.Fprintln(os.Stderr, "[ERROR]stdLogger.persist:", err)
 		return
 	}
 	defer f.Close()
@@ -118,7 +118,7 @@ func (sl *StdLogger) persist() {
 	}
 }
 
-func (sl *StdLogger) flush() {
+func (sl *stdLogger) flush() {
 	sl.Lock()
 	defer sl.Unlock()
 	if len(sl.lines) > 0 {
@@ -127,10 +127,10 @@ func (sl *StdLogger) flush() {
 	}
 }
 
-func (sl *StdLogger) rotate() {
+func (sl *stdLogger) rotate() {
 	defer func() {
 		if e := recover(); e != nil {
-			err := trace("StdLogger.rotate: %v", e)
+			err := trace("stdLogger.rotate: %v", e)
 			fmt.Fprintln(os.Stderr, err)
 		}
 	}()
@@ -153,43 +153,27 @@ func (sl *StdLogger) rotate() {
 	}
 }
 
-func (sl *StdLogger) Dbg(format string, args ...interface{}) {
+func (sl *stdLogger) dbg(format string, args ...interface{}) {
 	if sl.dbgMode {
-		sl.Log(format, args...)
+		sl.log(format, args...)
 	}
 }
 
-func (sl *StdLogger) Err(format string, args ...interface{}) {
+func (sl *stdLogger) err(format string, args ...interface{}) {
 	sl.Lock()
 	defer sl.Unlock()
-	var exp bool
-	for _, a := range args {
-		switch a.(type) {
-		case error:
-			exp = true
-			format = "[EXCEPTION] " + format
-		default:
-			exp = false
-		}
-		if exp {
-			break
-		}
-	}
-	if !exp {
-		format = "[ERROR] " + format
-	}
 	err := trace(format, args...)
 	msg := sl.fmt(err.Error())
 	for _, m := range msg {
 		fmt.Fprintln(os.Stderr, m)
 		sl.lines = append(sl.lines, m)
-		if !sl.dbgMode && !exp {
+		if !sl.dbgMode {
 			break
 		}
 	}
 }
 
-func (sl *StdLogger) Log(format string, args ...interface{}) {
+func (sl *stdLogger) log(format string, args ...interface{}) {
 	sl.Lock()
 	defer sl.Unlock()
 	msg := sl.fmt(format, args...)
@@ -197,4 +181,23 @@ func (sl *StdLogger) Log(format string, args ...interface{}) {
 		fmt.Println(m)
 	}
 	sl.lines = append(sl.lines, msg...)
+}
+
+var sl *stdLogger
+
+func InitLogger(path string, split, keep int, dbg bool) {
+	sl = newLogger(path, split, keep)
+	sl.setDebug(dbg)
+}
+
+func Dbg(format string, args ...interface{}) {
+	sl.dbg(format, args...)
+}
+
+func Err(format string, args ...interface{}) {
+	sl.err(format, args...)
+}
+
+func Log(format string, args ...interface{}) {
+	sl.log(format, args...)
 }

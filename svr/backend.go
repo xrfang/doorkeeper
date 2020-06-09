@@ -3,6 +3,7 @@ package svr
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 
@@ -57,7 +58,9 @@ func (b *backend) addConn(conn net.Conn) {
 	go func(c *net.TCPConn) { //从本地端读入原始数据，装配成chunk
 		defer func() {
 			if e := recover(); e != nil {
-				fmt.Println(trace("TODO: client recv: %v", e))
+				if e != io.EOF {
+					fmt.Println(trace("TODO: client recv: %v", e))
+				}
 				b.delConn(c)
 			}
 		}()
@@ -92,7 +95,7 @@ func (b *backend) Run() {
 		}()
 		for b.isAlive() {
 			var c base.Chunk
-			assert(c.Recv(b.serv))
+			c.Recv(b.serv)
 			tag := c.Dst.String()
 			cli := b.clis[tag]
 			if cli == nil {

@@ -13,9 +13,16 @@ import (
 )
 
 type config struct {
-	Mode   string     `yaml:"mode"`
-	Server svr.Config `yaml:"server"`
-	Client cli.Config `yaml:"client"`
+	Mode    string     `yaml:"mode"`
+	Debug   bool       `yaml:"debug"`
+	Server  svr.Config `yaml:"server"`
+	Client  cli.Config `yaml:"client"`
+	ULimit  uint64     `yaml:"ulimit" json:"ulimit"`
+	Logging struct {
+		Path  string `yaml:"path" json:"path"`
+		Split int    `yaml:"split" json:"split"`
+		Keep  int    `yaml:"keep" json:"keep"`
+	} `yaml:"logging" json:"logging"`
 }
 
 var cf config
@@ -30,7 +37,7 @@ func loadConfig(fn string) {
 	switch cf.Mode {
 	case "client":
 		if !nr.MatchString(cf.Client.Name) {
-			panic(fmt.Errorf("loadConfig: client.name must be 1~32 chars of alphanum, - or ."))
+			panic(fmt.Errorf("loadConfig: client.name must be 1~32 chars of alphanum, . or -"))
 		}
 		cf.Client.Name = strings.ToLower(cf.Client.Name)
 		if cf.Client.SvrPort <= 0 || cf.Client.SvrPort > 65535 {
@@ -72,5 +79,17 @@ func loadConfig(fn string) {
 		}
 	default:
 		panic(fmt.Errorf(`loadConfig: mode must be "client" or "server"`))
+	}
+	if cf.ULimit == 0 {
+		cf.ULimit = 1024
+	}
+	if cf.Logging.Path == "" {
+		cf.Logging.Path = "../log"
+	}
+	if cf.Logging.Split == 0 {
+		cf.Logging.Split = 1024 * 1024 //每个log文件1兆字节
+	}
+	if cf.Logging.Keep == 0 {
+		cf.Logging.Keep = 10 //最多保留10个LOG文件
 	}
 }

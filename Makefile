@@ -25,4 +25,4 @@ comprel:
 compdbg:
 	go build -race -gcflags=all=-d=checkptr=0 .
 clean:
-	rm -fr version.go
+	rm -fr version.go dk

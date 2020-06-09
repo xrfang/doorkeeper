@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"dk/base"
 	"dk/cli"
 	"dk/svr"
 )
@@ -16,7 +17,7 @@ func main() {
 	flag.Usage = func() {
 		fmt.Printf("DoorKeeper %s\n\n", verinfo())
 		fmt.Printf("USAGE: %s [OPTIONS]\n\n", filepath.Base(os.Args[0]))
-		fmt.Println("OPTIONS:\n")
+		fmt.Printf("OPTIONS:\n\n")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -29,6 +30,10 @@ func main() {
 		return
 	}
 	loadConfig(*cfg)
+	base.InitLogger(cf.Logging.Path, cf.Logging.Split, cf.Logging.Keep, cf.Debug)
+	if err := ulimit(cf.ULimit); err != nil {
+		base.Log("ulimit(): %v", err)
+	}
 	switch cf.Mode {
 	case "client":
 		cli.Start(cf.Client)
