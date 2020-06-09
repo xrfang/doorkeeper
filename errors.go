@@ -25,7 +25,6 @@ func (e exception) Error() string {
 }
 
 func trace(msg string, args ...interface{}) error {
-	pfx := 0
 	ex := exception{fmt.Sprintf(msg, args...)}
 	n := 1
 	for {
@@ -39,11 +38,9 @@ func trace(msg string, args ...interface{}) error {
 		if strings.HasPrefix(name, "runtime.") {
 			continue
 		}
-		if pfx == 0 {
-			pfx = strings.Index(file, "/PKGNAME/") + 1
-		}
-		fn := file[pfx:]
-		ex = append(ex, fmt.Sprintf("\t(%s:%d) %s", fn, line, name))
+		fn := strings.Split(file, "/")
+		file = strings.Join(fn[len(fn)-2:], "/")
+		ex = append(ex, fmt.Sprintf("\t(%s:%d) %s", file, line, name))
 	}
 	return ex
 }
