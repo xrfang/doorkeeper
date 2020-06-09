@@ -99,7 +99,7 @@ func (p *proxy) delConns(ip string) {
 func (p *proxy) run(cf Config) {
 	defer func() {
 		if e := recover(); e != nil {
-			base.Err("proxy.run: %v", e)
+			base.Err("%v", e)
 		}
 		p.setLive(false)
 	}()
