@@ -124,7 +124,7 @@ func (p *proxy) run(cf Config) {
 			}
 			p.setLive(false)
 			if err == io.EOF {
-				base.Dbg(`server "%s" disconnected`, addr)
+				base.Log(`server "%s" disconnected`, addr)
 			} else {
 				base.Err("%v", err)
 			}

@@ -66,10 +66,11 @@ func (sm *serviceMgr) Validate(conn net.Conn) {
 	if err != nil {
 		err, ok := err.(net.Error)
 		if !ok || !err.Timeout() {
-			base.Log("sm.Validate(%s): %v", ra, err)
+			base.Dbg("sm.Validate(%s): %v", ra, err)
 		} else {
 			base.Dbg("sm.Validate(%s): %v", ra, err)
 		}
+		base.Log(`backend "%s" refused (handshake failed)`, ra)
 		conn.Close()
 		return
 	}
@@ -77,6 +78,7 @@ func (sm *serviceMgr) Validate(conn net.Conn) {
 	name := sm.Authenticate(buf[:n])
 	if name == "" {
 		base.Dbg("sm.Validate(%s): invalid hmac [%x]", ra, buf[:n])
+		base.Log(`backend "%s" refused (handshake failed)`, ra)
 		conn.Close()
 		return
 	}
