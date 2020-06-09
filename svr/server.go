@@ -4,7 +4,6 @@ import (
 	"dk/base"
 	"fmt"
 	"net"
-	"net/http"
 	"time"
 )
 
@@ -19,16 +18,9 @@ type Config struct {
 }
 
 func Start(cf Config) {
-	adm := http.Server{
-		Addr:         fmt.Sprintf(":%d", cf.AdminPort),
-		ReadTimeout:  time.Minute,
-		WriteTimeout: time.Minute,
-	}
-	go func() {
-		assert(adm.ListenAndServe())
-	}()
 	sm.Init(cf)
 	ra.Init(cf)
+	startAdminIntf(cf)
 
 	//TODO: 测试：允许访问指定服务
 	ip := net.ParseIP("192.168.90.54")
