@@ -163,7 +163,7 @@ func (p *proxy) run(cf Config) {
 				}
 			}
 		case base.CT_QRY:
-			fmt.Println("TODO: handle CT_QRY")
+			fmt.Printf("TODO: handle CT_QRY: port=%v\n", c.Dst.Port)
 		}
 	}
 }

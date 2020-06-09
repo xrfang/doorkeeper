@@ -1,6 +1,7 @@
 package svr
 
 import (
+	"dk/base"
 	"fmt"
 	"net"
 	"net/http"
@@ -31,7 +32,7 @@ import (
   - IP不是"*"：内容分3行，第一行为"OK"；第二行为授权空闲超时时间；第三行为
     授权终止时间。时间格式为RFC3339。
   - IP是"*"：内容首行为"OK"或"ERR"。若为OK，后续行为打开指定端口的IP列表，
-	一行一个IP；若为ERR，表示内网没有IP打开了指定端口
+	一行一个IP；若为ERR，后续行为错误原因
 
 其他命令：若仅提供OTP或OTP+name时应该如何？ //TODO
 */
@@ -65,8 +66,27 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 		if len(ff) > 1 {
 			src = ff[1]
 		}
+		srcIP := net.ParseIP(src)
+		if srcIP == nil {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		}
 		if s[3] == "*" {
-			fmt.Fprintf(w, "TODO: query ports %+v\n", s)
+			b := sm.backends[s[1]]
+			if b == nil {
+				fmt.Fprintln(w, "ERR")
+				fmt.Fprintf(w, "backend \"%s\" not found\n", s[1])
+				return
+			}
+			addr := &net.TCPAddr{IP: srcIP, Port: port}
+			qry := base.Chunk{Type: base.CT_QRY, Src: addr, Dst: addr}
+			err := qry.Send(b.serv)
+			if err != nil {
+				fmt.Fprintln(w, "ERR")
+				fmt.Fprintln(w, err)
+				return
+			}
+			fmt.Fprintf(w, "TODO: query sent: %+v\n", qry)
 			return
 		}
 		ip := net.ParseIP(s[3])

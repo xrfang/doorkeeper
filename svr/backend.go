@@ -120,6 +120,8 @@ func (b *backend) Run() {
 			case base.CT_DAT: //data transfer
 				_, err := cli.Write(c.Buf)
 				assert(err)
+			case base.CT_QRY:
+				//TODO: handle port query reply
 			}
 		}
 	}()
