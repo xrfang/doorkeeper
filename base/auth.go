@@ -7,13 +7,15 @@ import (
 )
 
 func Authenticate(seed []byte, name, key string) []byte {
+	res := make([]byte, 16)
 	if len(seed) != 16 {
-		seed = make([]byte, 16)
-		rand.Read(seed)
+		rand.Read(res)
+	} else {
+		copy(res, seed)
 	}
 	h := hmac.New(sha256.New, []byte(key))
-	h.Write(seed)
+	h.Write(res)
 	h.Write([]byte(name))
-	seed = append(seed, h.Sum(nil)...)
-	return seed[:32]
+	res = append(res, h.Sum(nil)...)
+	return res[:32]
 }
