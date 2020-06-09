@@ -32,7 +32,7 @@ func newLogger(path string, split, keep int) *stdLogger {
 	sl := stdLogger{path: path, size: split, keep: keep}
 	go func() {
 		for {
-			time.Sleep(time.Second)
+			time.Sleep(500 * time.Millisecond)
 			sl.flush()
 			if sl.path != "" {
 				sl.rotate()
