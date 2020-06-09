@@ -1,7 +1,6 @@
 package svr
 
 import (
-	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -60,15 +59,16 @@ func (sm *serviceMgr) Init(cf Config) {
 }
 
 func (sm *serviceMgr) Validate(conn net.Conn) {
+	ra := conn.RemoteAddr().String()
 	assert(conn.SetDeadline(time.Now().Add(sm.handshake)))
 	buf := make([]byte, 1024)
 	n, err := conn.Read(buf)
 	if err != nil {
 		err, ok := err.(net.Error)
 		if !ok || !err.Timeout() {
-			fmt.Printf("TODO: log error %v\n", err)
+			base.Log("sm.Validate(%s): %v", ra, err)
 		} else {
-			fmt.Printf("TODO: log timeout waiting handshake\n")
+			base.Dbg("sm.Validate(%s): %v", ra, err)
 		}
 		conn.Close()
 		return
@@ -76,11 +76,11 @@ func (sm *serviceMgr) Validate(conn net.Conn) {
 	assert(conn.SetReadDeadline(time.Time{}))
 	name := sm.Authenticate(buf[:n])
 	if name == "" {
-		fmt.Println("TODO: hmac check error, disconnecting...")
+		base.Dbg("sm.Validate(%s): invalid hmac [%x]", ra, buf[:n])
 		conn.Close()
 		return
 	}
-	fmt.Println("TODO: handshake successful")
+	base.Log("backend %s connected", ra)
 	sm.Lock()
 	defer sm.Unlock()
 	b := sm.backends[name]
@@ -102,7 +102,7 @@ func (sm *serviceMgr) Relay(conn net.Conn, token *accessToken) {
 	defer sm.Unlock()
 	b := sm.backends[token.dst]
 	if b == nil {
-		//TODO: log
+		base.Log(`sm.Relay: backend "%s" not found`, token.dst)
 		conn.Close()
 		return
 	}

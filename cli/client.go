@@ -3,6 +3,7 @@ package cli
 import (
 	"dk/base"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 	"time"
@@ -37,23 +38,23 @@ func (p *proxy) setLive(stat bool) {
 
 func (p *proxy) addConn(src, dst *net.TCPAddr) (c *net.TCPConn) {
 	p.Lock()
-	defer func() {
-		if e := recover(); e != nil {
-			//TODO: log error
-			fmt.Println(trace("%v", e))
-		}
-		p.Unlock()
-	}()
-	fmt.Printf("addConn: src=%v; dst=%v\n", src, dst) //TODO: add logging
+	defer p.Unlock()
+	base.Dbg("proxy: %s <=> %s", src, dst)
 	conn, err := net.Dial("tcp", dst.String())
-	assert(err)
+	if err != nil {
+		base.Log("proxy.Dial(%s): %v", dst.String(), err)
+		return
+	}
 	c = conn.(*net.TCPConn)
 	p.dsts[src.String()] = c
 	go func(conn *net.TCPConn) {
 		defer func() {
 			e := recover()
-			//TODO: log error
-			fmt.Println(trace("%v", e))
+			if e == io.EOF {
+				base.Dbg(`backend "%s" disconnected`, dst)
+			} else {
+				base.Err("%v", e)
+			}
 			p.delConn(src)
 		}()
 		buf := make([]byte, 4096)
@@ -75,7 +76,6 @@ func (p *proxy) addConn(src, dst *net.TCPAddr) (c *net.TCPConn) {
 func (p *proxy) delConn(addr *net.TCPAddr) {
 	p.Lock()
 	defer p.Unlock()
-	fmt.Println("TODO: cli.proxy.delConn:", addr)
 	tag := addr.String()
 	conn := p.dsts[tag]
 	if conn != nil {
@@ -91,7 +91,6 @@ func (p *proxy) delConns(ip string) {
 		host, _, _ := net.SplitHostPort(src)
 		if host == ip {
 			c.Close()
-			fmt.Println("TODO: cli.proxy.delConns:", ip)
 			delete(p.dsts, host)
 		}
 	}
@@ -100,14 +99,14 @@ func (p *proxy) delConns(ip string) {
 func (p *proxy) run(cf Config) {
 	defer func() {
 		if e := recover(); e != nil {
-			fmt.Println(trace("TODO: proxy.run: %v", e))
+			base.Err("proxy.run: %v", e)
 		}
 		p.setLive(false)
 	}()
 	addr := fmt.Sprintf("%s:%d", cf.SvrHost, cf.SvrPort)
 	conn, err := net.Dial("tcp", addr)
 	assert(err)
-	fmt.Println("TODO: client connected")
+	base.Log("connected to %s", addr)
 	p.Lock()
 	p.serv = conn.(*net.TCPConn)
 	p.Unlock()
@@ -116,7 +115,32 @@ func (p *proxy) run(cf Config) {
 	p.serv.Write(handshake)
 	for p.isAlive() {
 		var c base.Chunk
-		c.Recv(p.serv)
+		err := c.Recv(p.serv)
+		if err != nil {
+			ne, ok := err.(net.Error)
+			if ok && ne.Timeout() {
+				base.Dbg(`recv(%s): timeout`, addr)
+				continue
+			}
+			p.setLive(false)
+			if err == io.EOF {
+				base.Dbg(`server "%s" disconnected`, addr)
+			} else {
+				base.Err("%v", err)
+			}
+			break
+		}
+		switch err.(type) {
+		case net.Error:
+			if err.(net.Error).Timeout() {
+				base.Dbg(`server "%s" disconnected`, addr)
+			} else {
+				base.Err("%v", err)
+			}
+		case error:
+			base.Err("%v", err)
+			break
+		}
 		switch c.Type {
 		case base.CT_CLS:
 			p.delConns(c.Src.IP.String())
@@ -129,8 +153,12 @@ func (p *proxy) run(cf Config) {
 			if dst != nil {
 				_, err := dst.Write(c.Buf)
 				if err != nil {
-					fmt.Printf("TODO: relay: %v\n", err)
-					//TODO: log data transfer error
+					target := dst.LocalAddr().String()
+					if err == io.EOF {
+						base.Dbg(`target "%s" disconnected`, target)
+					} else {
+						base.Err("target(%s): %v", target, err)
+					}
 					p.delConn(c.Src)
 				}
 			}

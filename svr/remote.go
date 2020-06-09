@@ -1,7 +1,7 @@
 package svr
 
 import (
-	"fmt"
+	"dk/base"
 	"net"
 	"sync"
 	"time"
@@ -85,11 +85,11 @@ func (ra *remoteAdmin) Init(cf Config) {
 					}
 					remove := false
 					if time.Since(t.updated) > ra.maxIdle {
-						fmt.Println("TODO: log token idle timeout")
+						base.Dbg(`token for "%v" idle timeout`, s)
 						remove = true
 					}
 					if time.Since(t.created) > ra.maxLife {
-						fmt.Println("TODO: log token end of life")
+						base.Dbg(`token for "%v" end of life`, s)
 						remove = true
 					}
 					if remove {

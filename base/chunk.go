@@ -54,7 +54,17 @@ func (c Chunk) Serialize() []byte {
 	return res
 }
 
-func (c *Chunk) Recv(conn *net.TCPConn) {
+func (c *Chunk) Recv(conn *net.TCPConn) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			ne, ok := e.(net.Error)
+			if ok && ne.Timeout() {
+				err = ne
+			} else if e != io.EOF {
+				err = trace("%v", e)
+			}
+		}
+	}()
 	assert(conn.SetReadDeadline(time.Now().Add(time.Minute)))
 	defer func() {
 		assert(conn.SetReadDeadline(time.Time{}))
@@ -74,7 +84,7 @@ func (c *Chunk) Recv(conn *net.TCPConn) {
 		addr.IP = net.IP(ip)
 		return &addr
 	}
-	_, err := io.ReadFull(conn, buf[:2])
+	_, err = io.ReadFull(conn, buf[:2])
 	assert(err)
 	tag := buf[0] >> 4
 	blen := (uint16(buf[0]&0xF) << 8) + uint16(buf[1])
@@ -84,6 +94,7 @@ func (c *Chunk) Recv(conn *net.TCPConn) {
 	_, err = io.ReadFull(conn, buf[:blen])
 	assert(err)
 	c.Buf = buf[:blen]
+	return
 }
 
 func (c Chunk) Send(conn *net.TCPConn) (err error) {

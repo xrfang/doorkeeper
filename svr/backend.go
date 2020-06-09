@@ -2,7 +2,6 @@ package svr
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -58,8 +57,10 @@ func (b *backend) addConn(conn net.Conn) {
 	go func(c *net.TCPConn) { //从本地端读入原始数据，装配成chunk
 		defer func() {
 			if e := recover(); e != nil {
-				if e != io.EOF {
-					fmt.Println(trace("TODO: client recv: %v", e))
+				if e == io.EOF {
+					base.Dbg(`remote "%s" disconnected`, tag)
+				} else {
+					base.Err("%v", e)
 				}
 				b.delConn(c)
 			}
@@ -89,7 +90,12 @@ func (b *backend) Run() {
 	go func() {
 		defer func() {
 			if e := recover(); e != nil {
-				fmt.Println(trace("TODO: %v", e))
+				if e == io.EOF {
+					ra := b.serv.RemoteAddr().String()
+					base.Log("backend %s disconnected", ra)
+				} else {
+					base.Err("backend.Run: %v", e)
+				}
 				b.setLive(false)
 			}
 		}()

@@ -1,6 +1,7 @@
 package svr
 
 import (
+	"dk/base"
 	"fmt"
 	"net"
 	"net/http"
@@ -38,7 +39,7 @@ func Start(cf Config) {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			fmt.Println("TODO: log error:", err)
+			base.Log("accept: %v", err)
 			time.Sleep(time.Second)
 			continue
 		}
