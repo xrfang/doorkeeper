@@ -20,6 +20,7 @@ client:             # 客户端配置
   name:             # 客户端名称
   auth:             # 共享密钥
   max_conn: 9       # 最大连接数
+  lan_nets: []      # 本地网络定义（用于端口扫描，CIDR格式的数组）
 logging:
   path: ../log      # LOG文件目录（相对目录基于本配置文件）
   split: 1048576    # 最大LOG字节数（超过则切分）
