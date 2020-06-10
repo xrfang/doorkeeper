@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"dk/base"
 	"fmt"
 	"io"
@@ -10,11 +11,12 @@ import (
 )
 
 type Config struct {
-	Name    string `yaml:"name"`
-	SvrHost string `yaml:"svr_host"`
-	SvrPort int    `yaml:"svr_port"`
-	Auth    string `yaml:"auth"`
-	MaxConn int    `yaml:"max_conn"`
+	Name    string   `yaml:"name"`
+	SvrHost string   `yaml:"svr_host"`
+	SvrPort int      `yaml:"svr_port"`
+	Auth    string   `yaml:"auth"`
+	MaxConn int      `yaml:"max_conn"`
+	LanNets []string `yaml:"lan_nets"`
 }
 
 type proxy struct {
@@ -163,7 +165,27 @@ func (p *proxy) run(cf Config) {
 				}
 			}
 		case base.CT_QRY:
-			fmt.Printf("TODO: handle CT_QRY: port=%v\n", c.Dst.Port)
+			rep := base.Chunk{
+				Type: base.CT_QRY,
+				Src:  c.Src,
+				Dst:  c.Src,
+			}
+			hosts, err := portScan(c.Dst.Port, cf.LanNets)
+			var msg bytes.Buffer
+			if err != nil {
+				fmt.Fprintln(&msg, "ERR")
+				fmt.Fprintln(&msg, err)
+			} else if len(hosts) == 0 {
+				fmt.Fprintln(&msg, "ERR")
+				fmt.Fprintf(&msg, "no host opens port %d\n", c.Dst.Port)
+			} else {
+				fmt.Fprintln(&msg, "OK")
+				for _, h := range hosts {
+					fmt.Fprintln(&msg, h)
+				}
+			}
+			rep.Buf = msg.Bytes()
+			rep.Send(p.serv)
 		}
 	}
 }

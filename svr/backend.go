@@ -104,7 +104,7 @@ func (b *backend) Run() {
 			c.Recv(b.serv)
 			tag := c.Dst.String()
 			cli := b.clis[tag]
-			if cli == nil {
+			if cli == nil && c.Type != base.CT_QRY {
 				rep := base.Chunk{
 					Type: base.CT_CLS, //local disconnected, notify DKC
 					Src:  c.Dst,
@@ -121,7 +121,12 @@ func (b *backend) Run() {
 				_, err := cli.Write(c.Buf)
 				assert(err)
 			case base.CT_QRY:
-				//TODO: handle port query reply
+				ch := getChan(c.Dst.IP.String(), c.Dst.Port)
+				if ch == nil {
+					base.Dbg("CT_QRY recipient not found, dropped")
+					continue
+				}
+				ch <- c.Buf
 			}
 		}
 	}()

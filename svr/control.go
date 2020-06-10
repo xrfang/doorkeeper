@@ -49,26 +49,27 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 				s[3] = "127.0.0.1"
 			}
 		default:
-			http.Error(w, "Not Found", http.StatusNotFound)
+			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 		port, _ := strconv.Atoi(s[2])
 		if port < 0 || port > 65535 {
-			http.Error(w, "Not Found", http.StatusNotFound)
+			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 		if !totp.Validate(s[0], cf.OTP.Key) {
-			http.Error(w, "Not Found", http.StatusNotFound)
+			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
-		src, _, _ := net.SplitHostPort(r.RemoteAddr)
+		srch, srcp, _ := net.SplitHostPort(r.RemoteAddr)
+		src := srch
 		ff := fwr.FindStringSubmatch(r.Header.Get("Forwarded"))
 		if len(ff) > 1 {
 			src = ff[1]
 		}
 		srcIP := net.ParseIP(src)
 		if srcIP == nil {
-			http.Error(w, "Not Found", http.StatusNotFound)
+			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 		if s[3] == "*" {
@@ -78,20 +79,31 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 				fmt.Fprintf(w, "backend \"%s\" not found\n", s[1])
 				return
 			}
-			addr := &net.TCPAddr{IP: srcIP, Port: port}
-			qry := base.Chunk{Type: base.CT_QRY, Src: addr, Dst: addr}
+			ip := net.ParseIP(srch)
+			sp, _ := strconv.Atoi(srcp)
+			qry := base.Chunk{
+				Type: base.CT_QRY,
+				Src:  &net.TCPAddr{IP: ip, Port: sp},
+				Dst:  &net.TCPAddr{IP: srcIP, Port: port},
+			}
 			err := qry.Send(b.serv)
 			if err != nil {
 				fmt.Fprintln(w, "ERR")
 				fmt.Fprintln(w, err)
 				return
 			}
-			fmt.Fprintf(w, "TODO: query sent: %+v\n", qry)
+			select {
+			case msg := <-addChan(srch, sp):
+				fmt.Fprint(w, string(msg))
+			case <-time.After(60 * time.Second):
+				http.Error(w, "timeout", http.StatusRequestTimeout)
+			}
+			delChan(srch, sp)
 			return
 		}
 		ip := net.ParseIP(s[3])
 		if ip == nil {
-			http.Error(w, "Not Found", http.StatusNotFound)
+			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 		now := time.Now()
