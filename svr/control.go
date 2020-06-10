@@ -34,7 +34,9 @@ import (
   - IP是"*"：内容首行为"OK"或"ERR"。若为OK，后续行为打开指定端口的IP列表，
 	一行一个IP；若为ERR，后续行为错误原因
 
-其他命令：若仅提供OTP或OTP+name时应该如何？ //TODO
+其他命令：//TODO
+- 若仅提供OTP或OTP+name时应该如何？
+- 主动取消授权
 */
 
 func controller(cf Config) func(http.ResponseWriter, *http.Request) {
@@ -95,7 +97,7 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 			select {
 			case msg := <-addChan(srch, sp):
 				fmt.Fprint(w, string(msg))
-			case <-time.After(60 * time.Second):
+			case <-time.After(time.Minute):
 				http.Error(w, "timeout", http.StatusRequestTimeout)
 			}
 			delChan(srch, sp)
