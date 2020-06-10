@@ -28,7 +28,23 @@ func scan(port int, cidrs []string) (ips []string) {
 				if ip == "" {
 					break
 				}
-				//do the scan...
+				//TODO：do the scan...
+				func ScanPort(ip string, port int, timeout time.Duration) {
+					target := fmt.Sprintf("%s:%d", ip, port)
+					conn, err := net.DialTimeout("tcp", target, timeout)
+					if err != nil {
+						if strings.Contains(err.Error(), "too many open files") {
+							time.Sleep(timeout)
+							ScanPort(ip, port, timeout)
+						} else {
+							fmt.Println(port, "closed")
+						}
+						return
+					}
+				
+					conn.Close()
+					fmt.Println(port, "open")
+				}
 				resc <- ip
 			}
 		}()
