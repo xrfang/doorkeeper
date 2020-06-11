@@ -16,6 +16,15 @@ type backend struct {
 	sync.Mutex
 }
 
+func (b *backend) flush() {
+	b.Lock()
+	defer b.Unlock()
+	for _, c := range b.clis {
+		c.Close()
+	}
+	b.clis = make(map[string]*net.TCPConn)
+}
+
 func (b *backend) destroy() {
 	b.Lock()
 	defer b.Unlock()
@@ -23,6 +32,7 @@ func (b *backend) destroy() {
 	for _, c := range b.clis {
 		c.Close()
 	}
+	b.clis = make(map[string]*net.TCPConn)
 }
 
 func (b *backend) setLive(live bool) {
@@ -35,6 +45,16 @@ func (b *backend) isAlive() bool {
 	b.Lock()
 	defer b.Unlock()
 	return b.live
+}
+
+func (b *backend) listConns() []string {
+	b.Lock()
+	defer b.Unlock()
+	var cns []string
+	for c := range b.clis {
+		cns = append(cns, c)
+	}
+	return cns
 }
 
 func (b *backend) getConn(tag string) *net.TCPConn {
@@ -72,7 +92,7 @@ func (b *backend) addConn(conn net.Conn) {
 			}
 		}()
 		src := c.RemoteAddr().(*net.TCPAddr)
-		at := ra.Lookup(src.IP)
+		at := ra.Lookup(src.IP.String())
 		if at == nil {
 			panic(errors.New("no access"))
 		}
@@ -128,7 +148,7 @@ func (b *backend) Run() {
 			case base.CT_QRY:
 				ch := getChan(c.Dst.IP.String(), c.Dst.Port)
 				if ch == nil {
-					base.Dbg("CT_QRY recipient not found, dropped")
+					base.Dbg(`CT_QRY recipient "%s" not found, dropped`, c.Dst)
 					continue
 				}
 				ch <- c.Buf

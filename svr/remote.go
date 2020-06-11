@@ -33,10 +33,10 @@ func (ra *remoteAdmin) Register(src, dst string, addr *net.TCPAddr) {
 	}
 }
 
-func (ra *remoteAdmin) Lookup(ip net.IP) *accessToken {
+func (ra *remoteAdmin) Lookup(ip string) *accessToken {
 	ra.Lock()
 	defer ra.Unlock()
-	return ra.tokens[ip.String()]
+	return ra.tokens[ip]
 }
 
 func (ra *remoteAdmin) Connect(conn net.Conn) *accessToken {
@@ -45,11 +45,10 @@ func (ra *remoteAdmin) Connect(conn net.Conn) *accessToken {
 	p := conn.RemoteAddr().(*net.TCPAddr)
 	src := p.IP.String()
 	t := ra.tokens[src]
-	if t == nil {
-		return nil
+	if t != nil {
+		t.ref++
+		ra.tokens[src] = t
 	}
-	t.ref++
-	ra.tokens[src] = t
 	return t
 }
 

@@ -25,6 +25,10 @@ import (
   - ip:   目标地址，若不提供，默认为127.0.0.1，即DK客户端所在机器。
 		  该值若为*，表示需要查询打开指定端口的内网所有IP。
 
+如果只提供了otp，列出所有后端名称及当前在线状态
+如果只提供了otp和name，列出指定后端的所有连接。如果用DELETE方法调用，
+表示指令该后端删除所有活跃连接。
+
 返回约定：
 
 - 发生在任何错误，例如OTP不正确、后端名字不正确、端口非法等，一律返回HTTP/404。
@@ -33,10 +37,6 @@ import (
     授权终止时间。时间格式为RFC3339。
   - IP是"*"：内容首行为"OK"或"ERR"。若为OK，后续行为打开指定端口的IP列表，
 	一行一个IP；若为ERR，后续行为错误原因
-
-其他命令：//TODO
-- 若仅提供OTP或OTP+name时应该如何？
-- 主动取消授权
 */
 
 func controller(cf Config) func(http.ResponseWriter, *http.Request) {
@@ -64,8 +64,25 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 				http.Error(w, "not found", http.StatusNotFound)
 				return
 			}
-			fmt.Printf("TODO: conns: %+v\n", b.clis)
-			//TODO: list conn for specific backend and control it
+			fmt.Fprintln(w, "OK")
+			conns := b.listConns()
+			if r.Method == "DELETE" {
+				b.flush()
+				fmt.Fprintf(w, "%d connection(s) terminated\n", len(conns))
+				return
+			}
+			if len(conns) == 0 {
+				fmt.Fprintf(w, "backend \"%s\" has no active connection\n", s[1])
+				return
+			}
+			for _, c := range conns {
+				h, _, _ := net.SplitHostPort(c)
+				t := ra.Lookup(h)
+				if t != nil {
+					c = fmt.Sprintf("%s => %s", c, t.addr)
+				}
+				fmt.Fprintln(w, c)
+			}
 			return
 		case 3:
 			s = append(s, "127.0.0.1")

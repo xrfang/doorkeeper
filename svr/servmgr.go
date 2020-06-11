@@ -53,11 +53,14 @@ func (sm *serviceMgr) Init(cf Config) {
 			func() {
 				sm.Lock()
 				defer sm.Unlock()
+				base.Dbg("health check %d backends", len(sm.backends))
 				for n, b := range sm.backends {
-					if !b.isAlive() {
+					alive := b.isAlive()
+					base.Dbg(`backend "%s": alive=%v`, n, alive)
+					if !alive {
 						b.destroy()
 						delete(sm.backends, n)
-						base.Dbg(`backend "%s" offline, removed`, n)
+						base.Log(`backend "%s" offline, removed`, n)
 					}
 				}
 			}()
@@ -105,10 +108,12 @@ func (sm *serviceMgr) Validate(conn net.Conn) {
 		lo := &net.TCPAddr{IP: net.ParseIP("127.0.0.1")}
 		for {
 			time.Sleep(30 * time.Second)
+			base.Dbg(`pinging backend "%s"...`, name)
 			c := base.Chunk{Type: base.CT_PNG, Src: lo, Dst: lo}
-			if c.Send(b.serv) != nil {
-				base.Dbg(`ping backend "%s" failed`, ra)
+			if err := c.Send(b.serv); err != nil {
 				b.setLive(false)
+				base.Log(`ping backend "%s" failed`, ra)
+				base.Dbg("ERROR: %v", err)
 				return
 			}
 		}
