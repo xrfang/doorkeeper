@@ -25,9 +25,13 @@ import (
   - ip:   目标地址，若不提供，默认为127.0.0.1，即DK客户端所在机器。
 		  该值若为*，表示需要查询打开指定端口的内网所有IP。
 
-如果只提供了otp，列出所有后端名称及当前在线状态
-如果只提供了otp和name，列出指定后端的所有连接。如果用DELETE方法调用，
-表示指令该后端删除所有活跃连接。
+如果只提供了otp：
+  - 如果使用OPTIONS方法：列出当前授权令牌的来源以及目标地址
+  - 如果使用DELETE方法：删除所有授权令牌
+  - 否则：列出所有后端名称及当前在线状态
+如果只提供了otp和name：
+  - 如果使用DELETE方法：指令该后端删除所有活跃连接
+  - 否则：列出指定后端的所有连接
 
 返回约定：
 
@@ -50,12 +54,28 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 		}
 		switch len(s) {
 		case 1:
-			for n := range cf.Auth {
-				stat := "offline"
-				if sm.getBackend(n) != nil {
-					stat = "online"
+			fmt.Fprintln(w, "OK")
+			switch r.Method {
+			case "OPTIONS":
+				auths := ra.getSummary()
+				if len(auths) == 0 {
+					fmt.Fprintln(w, "no active authorization")
+				} else {
+					for _, a := range auths {
+						fmt.Fprintln(w, a)
+					}
 				}
-				fmt.Fprintf(w, "%s: %s\n", n, stat)
+			case "DELETE":
+				ra.flush()
+				fmt.Fprintln(w, "all authorization revoked")
+			default:
+				for n := range cf.Auth {
+					stat := "offline"
+					if sm.getBackend(n) != nil {
+						stat = "online"
+					}
+					fmt.Fprintf(w, "%s: %s\n", n, stat)
+				}
 			}
 			return
 		case 2:
@@ -65,12 +85,12 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 				return
 			}
 			fmt.Fprintln(w, "OK")
-			conns := b.listConns()
 			if r.Method == "DELETE" {
 				b.flush()
-				fmt.Fprintf(w, "%d connection(s) terminated\n", len(conns))
+				fmt.Fprintln(w, "all connections terminated")
 				return
 			}
+			conns := b.listConns()
 			if len(conns) == 0 {
 				fmt.Fprintf(w, "backend \"%s\" has no active connection\n", s[1])
 				return
@@ -154,7 +174,7 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 		addr := net.TCPAddr{IP: ip, Port: port}
 		ra.Register(src, s[1], &addr)
 		fmt.Fprintln(w, "OK")
-		fmt.Fprintln(w, maxIdle.Format(time.RFC3339))
-		fmt.Fprintln(w, maxLife.Format(time.RFC3339))
+		fmt.Fprintln(w, "start_before:", maxIdle.Format(time.RFC3339))
+		fmt.Fprintln(w, "expire_after:", maxLife.Format(time.RFC3339))
 	}
 }

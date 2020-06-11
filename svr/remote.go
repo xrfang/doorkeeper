@@ -2,7 +2,9 @@ package svr
 
 import (
 	"dk/base"
+	"fmt"
 	"net"
+	"sort"
 	"sync"
 	"time"
 )
@@ -20,6 +22,24 @@ type remoteAdmin struct {
 	maxIdle time.Duration
 	maxLife time.Duration
 	sync.Mutex
+}
+
+func (ra *remoteAdmin) getSummary() []string {
+	ra.Lock()
+	defer ra.Unlock()
+	var auths []string
+	for s, t := range ra.tokens {
+		auths = append(auths, fmt.Sprintf("%s => %s @ %s", s, t.addr,
+			t.updated.Format(time.RFC3339)))
+	}
+	sort.Strings(auths)
+	return auths
+}
+
+func (ra *remoteAdmin) flush() {
+	ra.Lock()
+	ra.tokens = make(map[string]*accessToken)
+	ra.Unlock()
 }
 
 func (ra *remoteAdmin) Register(src, dst string, addr *net.TCPAddr) {
