@@ -1,4 +1,6 @@
----
+package main
+
+const SAMPLE_CFG = `---
 mode:               # 工作模式，必须是"client"或"server"之一
 debug: false        # 调试模式（输出更多log信息）
 ulimit: 1024        # 最大句柄数量（一般无需调整）
@@ -24,4 +26,4 @@ client:             # 客户端配置
 logging:
   path: ../log      # LOG文件目录（相对目录基于本配置文件）
   split: 1048576    # 最大LOG字节数（超过则切分）
-  keep: 10          # 保留LOG文件数（超过删除最老的）
+  keep: 10          # 保留LOG文件数（超过删除最老的）`

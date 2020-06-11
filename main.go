@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -16,9 +17,9 @@ import (
 )
 
 func main() {
-	ver := flag.Bool("version", false, "Show version info")
-	cfg := flag.String("conf", "", "Configuration file")
-	init := flag.Bool("init", false, "initialize OTP key")
+	ver := flag.Bool("version", false, "show version info")
+	cfg := flag.String("conf", "", "configuration file")
+	init := flag.Bool("init", false, "create sample configuration or reset OTP key")
 	flag.Usage = func() {
 		fmt.Printf("DoorKeeper %s\n\n", verinfo())
 		fmt.Printf("USAGE: %s [OPTIONS]\n\n", filepath.Base(os.Args[0]))
@@ -31,7 +32,15 @@ func main() {
 		return
 	}
 	if *cfg == "" {
-		fmt.Println("ERROR: missing configuration (-conf), try -h for help")
+		if *init {
+			f, err := ioutil.TempFile(".", "dk.yaml.")
+			assert(err)
+			defer f.Close()
+			fmt.Fprintln(f, SAMPLE_CFG)
+			fmt.Println("sample configuration:", f.Name())
+		} else {
+			fmt.Println("ERROR: missing configuration (-conf), try -h for help")
+		}
 		return
 	}
 	loadConfig(*cfg)
