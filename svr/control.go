@@ -52,14 +52,19 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 		case 1:
 			for n := range cf.Auth {
 				stat := "offline"
-				if sm.backends[n] != nil {
+				if sm.getBackend(n) != nil {
 					stat = "online"
 				}
 				fmt.Fprintf(w, "%s: %s\n", n, stat)
 			}
 			return
 		case 2:
-			fmt.Println("TODO: list conns for backend", s[1])
+			b := sm.getBackend(s[1])
+			if b == nil {
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			fmt.Printf("TODO: conns: %+v\n", b.clis)
 			//TODO: list conn for specific backend and control it
 			return
 		case 3:
@@ -69,7 +74,10 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 				s[3] = "127.0.0.1"
 			}
 		default:
-			fmt.Printf("%+v\n", s)
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if cf.Auth[s[1]] == "" {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
@@ -90,7 +98,7 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 		if s[3] == "*" {
-			b := sm.backends[s[1]]
+			b := sm.getBackend(s[1])
 			if b == nil {
 				fmt.Fprintln(w, "ERR")
 				fmt.Fprintf(w, "backend \"%s\" not found\n", s[1])

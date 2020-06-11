@@ -15,6 +15,12 @@ type serviceMgr struct {
 	sync.Mutex
 }
 
+func (sm *serviceMgr) getBackend(name string) *backend {
+	sm.Lock()
+	defer sm.Unlock()
+	return sm.backends[name]
+}
+
 func (sm *serviceMgr) Authenticate(mac []byte) string {
 	if len(mac) != 32 {
 		return ""
@@ -113,9 +119,7 @@ func (sm *serviceMgr) Validate(conn net.Conn) {
 }
 
 func (sm *serviceMgr) Relay(conn net.Conn, token *accessToken) {
-	sm.Lock()
-	defer sm.Unlock()
-	b := sm.backends[token.dst]
+	b := sm.getBackend(token.dst)
 	if b == nil {
 		base.Log(`sm.Relay: backend "%s" not found`, token.dst)
 		conn.Close()
