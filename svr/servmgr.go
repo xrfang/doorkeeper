@@ -51,6 +51,7 @@ func (sm *serviceMgr) Init(cf Config) {
 					if !b.isAlive() {
 						b.destroy()
 						delete(sm.backends, n)
+						base.Dbg(`backend "%s" offline, removed`, n)
 					}
 				}
 			}()
@@ -94,6 +95,17 @@ func (sm *serviceMgr) Validate(conn net.Conn) {
 		serv: conn.(*net.TCPConn),
 		clis: make(map[string]*net.TCPConn),
 	}
+	go func() {
+		for {
+			time.Sleep(30 * time.Second)
+			c := base.Chunk{Type: base.CT_PNG}
+			if c.Send(b.serv) != nil {
+				base.Dbg(`ping backend "%s" failed`, ra)
+				b.setLive(false)
+				return
+			}
+		}
+	}()
 	sm.backends[name] = b
 	b.Run()
 	return
