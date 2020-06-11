@@ -42,8 +42,26 @@ import (
 func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 	fwr := regexp.MustCompile(`for=(?:["[])*([0-9a-fA-F:.]+)`)
 	return func(w http.ResponseWriter, r *http.Request) {
-		s := strings.Split(r.URL.Path[1:], "/")
+		path := strings.Trim(r.URL.Path, " /\t")
+		s := strings.Split(path, "/")
+		if len(s) == 0 || !totp.Validate(s[0], cf.OTP.Key) {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
 		switch len(s) {
+		case 1:
+			for n := range cf.Auth {
+				stat := "offline"
+				if sm.backends[n] != nil {
+					stat = "online"
+				}
+				fmt.Fprintf(w, "%s: %s\n", n, stat)
+			}
+			return
+		case 2:
+			fmt.Println("TODO: list conns for backend", s[1])
+			//TODO: list conn for specific backend and control it
+			return
 		case 3:
 			s = append(s, "127.0.0.1")
 		case 4:
@@ -51,15 +69,12 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 				s[3] = "127.0.0.1"
 			}
 		default:
+			fmt.Printf("%+v\n", s)
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 		port, _ := strconv.Atoi(s[2])
 		if port < 0 || port > 65535 {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-		if !totp.Validate(s[0], cf.OTP.Key) {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
