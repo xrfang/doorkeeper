@@ -37,6 +37,12 @@ func (b *backend) isAlive() bool {
 	return b.live
 }
 
+func (b *backend) getConn(tag string) *net.TCPConn {
+	b.Lock()
+	defer b.Unlock()
+	return b.clis[tag]
+}
+
 func (b *backend) delConn(conn *net.TCPConn) {
 	b.Lock()
 	defer b.Unlock()
@@ -103,7 +109,7 @@ func (b *backend) Run() {
 			var c base.Chunk
 			c.Recv(b.serv)
 			tag := c.Dst.String()
-			cli := b.clis[tag]
+			cli := b.getConn(tag)
 			if cli == nil && c.Type != base.CT_QRY {
 				rep := base.Chunk{
 					Type: base.CT_CLS, //local disconnected, notify DKC
@@ -115,8 +121,7 @@ func (b *backend) Run() {
 			}
 			switch c.Type {
 			case base.CT_CLS: //DKC disconnected
-				cli.Close()         //close remote connection
-				delete(b.clis, tag) //unregister connection
+				b.delConn(cli) //close remote connection
 			case base.CT_DAT: //data transfer
 				_, err := cli.Write(c.Buf)
 				assert(err)
