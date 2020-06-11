@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sort"
 	"sync"
 	"time"
 )
@@ -170,15 +171,13 @@ func (p *proxy) run(cf Config) {
 				Src:  c.Src,
 				Dst:  c.Src,
 			}
-			hosts, err := portScan(c.Dst.Port, cf.LanNets)
+			hosts := portScan(c.Dst.Port, cf.LanNets)
 			var msg bytes.Buffer
-			if err != nil {
-				fmt.Fprintln(&msg, "ERR")
-				fmt.Fprintln(&msg, err)
-			} else if len(hosts) == 0 {
+			if len(hosts) == 0 {
 				fmt.Fprintln(&msg, "ERR")
 				fmt.Fprintf(&msg, "no host opens port %d\n", c.Dst.Port)
 			} else {
+				sort.Strings(hosts)
 				fmt.Fprintln(&msg, "OK")
 				for _, h := range hosts {
 					fmt.Fprintln(&msg, h)

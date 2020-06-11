@@ -4,3 +4,4 @@ client:
   svr_host: 127.0.0.1
   name: dev
   auth: dev-auth-key
+  lan_nets: [192.168.90.0/24]
