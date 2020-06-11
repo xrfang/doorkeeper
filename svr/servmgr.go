@@ -96,9 +96,10 @@ func (sm *serviceMgr) Validate(conn net.Conn) {
 		clis: make(map[string]*net.TCPConn),
 	}
 	go func() {
+		lo := &net.TCPAddr{IP: net.ParseIP("127.0.0.1")}
 		for {
 			time.Sleep(30 * time.Second)
-			c := base.Chunk{Type: base.CT_PNG}
+			c := base.Chunk{Type: base.CT_PNG, Src: lo, Dst: lo}
 			if c.Send(b.serv) != nil {
 				base.Dbg(`ping backend "%s" failed`, ra)
 				b.setLive(false)
