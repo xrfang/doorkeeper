@@ -108,7 +108,6 @@ func (sm *serviceMgr) Validate(conn net.Conn) {
 		lo := &net.TCPAddr{IP: net.ParseIP("127.0.0.1")}
 		for {
 			time.Sleep(30 * time.Second)
-			base.Dbg(`pinging backend "%s"...`, name)
 			c := base.Chunk{Type: base.CT_PNG, Src: lo, Dst: lo}
 			if err := c.Send(b.serv); err != nil {
 				b.setLive(false)
@@ -116,6 +115,7 @@ func (sm *serviceMgr) Validate(conn net.Conn) {
 				base.Dbg("ERROR: %v", err)
 				return
 			}
+			base.Dbg(`ping backend "%s" ok`, name)
 		}
 	}()
 	sm.backends[name] = b
