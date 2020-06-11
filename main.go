@@ -19,7 +19,8 @@ import (
 func main() {
 	ver := flag.Bool("version", false, "show version info")
 	cfg := flag.String("conf", "", "configuration file")
-	init := flag.Bool("init", false, "create sample configuration or reset OTP key")
+	init := flag.Bool("init", false, "create sample configuration "+
+		"(without -conf), or\nreset OTP key (with -conf)")
 	flag.Usage = func() {
 		fmt.Printf("DoorKeeper %s\n\n", verinfo())
 		fmt.Printf("USAGE: %s [OPTIONS]\n\n", filepath.Base(os.Args[0]))
