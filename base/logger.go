@@ -165,7 +165,6 @@ func (sl *stdLogger) err(format string, args ...interface{}) {
 	err := trace(format, args...)
 	msg := sl.fmt(err.Error())
 	for _, m := range msg {
-		fmt.Fprintln(os.Stderr, m)
 		sl.lines = append(sl.lines, m)
 		if !sl.dbgMode {
 			break
@@ -177,9 +176,6 @@ func (sl *stdLogger) log(format string, args ...interface{}) {
 	sl.Lock()
 	defer sl.Unlock()
 	msg := sl.fmt(format, args...)
-	for _, m := range msg {
-		fmt.Println(m)
-	}
 	sl.lines = append(sl.lines, msg...)
 }
 
