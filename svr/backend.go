@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"strings"
 	"sync"
 
 	"dk/base"
@@ -130,7 +131,7 @@ func (b *backend) Run() {
 			c.Recv(b.serv)
 			tag := c.Dst.String()
 			cli := b.getConn(tag)
-			if cli == nil && c.Type != base.CT_QRY {
+			if cli == nil && c.Type != base.CT_QRY && c.Type != base.CT_PNG {
 				rep := base.Chunk{
 					Type: base.CT_CLS, //local disconnected, notify DKC
 					Src:  c.Dst,
@@ -152,6 +153,9 @@ func (b *backend) Run() {
 					continue
 				}
 				ch <- c.Buf
+			case base.CT_PNG:
+				s := strings.SplitN(string(c.Buf), "=", 2)
+				base.Dbg(`backend "%s" reply: conns=%s`, s[0], s[1])
 			}
 		}
 	}()

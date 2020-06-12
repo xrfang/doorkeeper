@@ -185,6 +185,23 @@ func (p *proxy) run(cf Config) {
 			}
 			rep.Buf = msg.Bytes()
 			rep.Send(p.serv)
+		case base.CT_PNG:
+			p.Lock()
+			stat := fmt.Sprintf("%s=%d", cf.Name, len(p.dsts))
+			p.Unlock()
+			lo := &net.TCPAddr{IP: net.ParseIP("127.0.0.1")}
+			c := base.Chunk{
+				Type: base.CT_PNG,
+				Src:  lo,
+				Dst:  lo,
+				Buf:  []byte(stat),
+			}
+			if err := c.Send(p.serv); err != nil {
+				base.Log("send ping reply failed")
+				base.Dbg("ERROR: %v", err)
+			} else {
+				base.Dbg("received ping, reply: %s", stat)
+			}
 		}
 	}
 }
@@ -193,7 +210,6 @@ func (p *proxy) init() {
 	p.Lock()
 	defer p.Unlock()
 	p.dsts = make(map[string]*net.TCPConn)
-	//TODO: send data, clean up, heartbeat etc.
 }
 
 func (p *proxy) Run(cf Config) {
