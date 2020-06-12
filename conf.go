@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -23,6 +24,15 @@ type config struct {
 		Split int    `yaml:"split" json:"split"`
 		Keep  int    `yaml:"keep" json:"keep"`
 	} `yaml:"logging" json:"logging"`
+	file string
+}
+
+func (c config) absPath(p string) string {
+	if filepath.IsAbs(p) {
+		return p
+	}
+	dir := filepath.Dir(c.file)
+	return filepath.Clean(filepath.Join(dir, p))
 }
 
 var cf config
@@ -31,6 +41,8 @@ func loadConfig(fn string) {
 	f, err := os.Open(fn)
 	assert(err)
 	defer f.Close()
+	assert(err)
+	cf.file, err = filepath.Abs(fn)
 	assert(yaml.NewDecoder(f).Decode(&cf))
 	nr := regexp.MustCompile(`(?i)^[a-z0-9.-]{1,32}$`)
 	cf.Mode = strings.ToLower(cf.Mode)
@@ -89,6 +101,7 @@ func loadConfig(fn string) {
 	if cf.Logging.Path == "" {
 		cf.Logging.Path = "../log"
 	}
+	cf.Logging.Path = cf.absPath(cf.Logging.Path)
 	if cf.Logging.Split == 0 {
 		cf.Logging.Split = 1024 * 1024 //每个log文件1兆字节
 	}
