@@ -6,8 +6,10 @@ arm: export GOOS=linux
 arm: export GOARCH=arm
 arm: export GOARM=7
 arm: release
+upx:
+	upx -9 dk*
 debug: setver geneh compdbg
-release: setver geneh comprel
+release: setver geneh comprel upx
 geneh: #generate error handler
 	@for tpl in `find . -type f |grep errors.tpl`; do \
         target=`echo $$tpl|sed 's/\.tpl/\.go/'`; \
