@@ -17,6 +17,10 @@ type accessToken struct {
 	updated time.Time
 }
 
+func (at accessToken) String() string {
+	return fmt.Sprintf("%s@%s", at.addr, at.dst)
+}
+
 type remoteAdmin struct {
 	tokens  map[string]*accessToken
 	maxIdle time.Duration
@@ -29,7 +33,7 @@ func (ra *remoteAdmin) getSummary() []string {
 	defer ra.Unlock()
 	var auths []string
 	for s, t := range ra.tokens {
-		auths = append(auths, fmt.Sprintf("%s => %s @ %s", s, t.addr,
+		auths = append(auths, fmt.Sprintf("%s => %s [%s]", s, t,
 			t.updated.Format(time.RFC3339)))
 	}
 	sort.Strings(auths)
@@ -96,8 +100,10 @@ func (ra *remoteAdmin) Init(cf Config) {
 			func() {
 				ra.Lock()
 				defer ra.Unlock()
+				base.Dbg("checking %d access tokens", len(ra.tokens))
 				for s, t := range ra.tokens {
 					if t.ref > 0 {
+						base.Dbg("token %s: ref=%d", t, t.ref)
 						t.updated = time.Now()
 						ra.tokens[s] = t
 						continue
@@ -113,6 +119,8 @@ func (ra *remoteAdmin) Init(cf Config) {
 					}
 					if remove {
 						delete(ra.tokens, s)
+					} else {
+						base.Dbg(`token "%s => %s" idle`, s, t)
 					}
 				}
 			}()
