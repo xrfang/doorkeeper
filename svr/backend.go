@@ -89,6 +89,7 @@ func (b *backend) addConn(conn net.Conn) {
 				} else {
 					base.Err("%v", e)
 				}
+				ra.Disconnect(c)
 				b.delConn(c)
 			}
 		}()
