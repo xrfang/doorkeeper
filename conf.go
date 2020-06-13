@@ -77,8 +77,8 @@ func loadConfig(fn string) {
 		if cf.Server.OTP.Issuer == "" {
 			cf.Server.OTP.Issuer = "Door Keeper"
 		}
-		if cf.Server.Auth == nil || len(cf.Server.Auth) == 0 {
-			panic(fmt.Errorf("loadConfig: server.auth not set"))
+		if cf.Server.Auth == nil {
+			cf.Server.Auth = make(map[string]string)
 		}
 		auth := make(map[string]string)
 		for k, v := range cf.Server.Auth {
