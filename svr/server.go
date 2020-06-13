@@ -14,9 +14,8 @@ type Config struct {
 	IdleClose int `yaml:"idle_close"`
 	AuthTime  int `yaml:"auth_time"`
 	OTP       struct {
-		Account string `yaml:"account"`
-		Issuer  string `yaml:"issuer"`
-		Key     string `yaml:"key"`
+		Issuer string `yaml:"issuer"`
+		Key    string `yaml:"key"`
 	} `yaml:"otp"`
 	Auth map[string]string `yaml:"auth"`
 }

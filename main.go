@@ -48,7 +48,7 @@ func main() {
 	if *init {
 		if cf.Mode == "server" {
 			gopts := totp.GenerateOpts{
-				AccountName: cf.Server.OTP.Account,
+				AccountName: "-",
 				Issuer:      cf.Server.OTP.Issuer,
 			}
 			key, err := totp.Generate(gopts)
