@@ -98,8 +98,8 @@ func (b *backend) addConn(conn net.Conn) {
 		if at == nil {
 			panic(errors.New("no access"))
 		}
+		buf := make([]byte, 4096)
 		for {
-			buf := make([]byte, 4096)
 			n, err := c.Read(buf)
 			assert(err)
 			c := base.Chunk{
@@ -129,7 +129,22 @@ func (b *backend) Run() {
 		}()
 		for b.isAlive() {
 			var c base.Chunk
-			c.Recv(b.serv)
+			err := c.Recv(b.serv)
+			if err != nil {
+				addr := b.serv.RemoteAddr().String()
+				ne, ok := err.(net.Error)
+				if ok && ne.Timeout() {
+					base.Dbg(`backend "%s" recv timeout`, addr)
+					continue
+				}
+				b.setLive(false)
+				if err == io.EOF {
+					base.Log(`backend "%s" disconnected`, addr)
+				} else {
+					base.Err("%v", err)
+				}
+				break
+			}
 			tag := c.Dst.String()
 			cli := b.getConn(tag)
 			if cli == nil && c.Type != base.CT_QRY && c.Type != base.CT_PNG {
