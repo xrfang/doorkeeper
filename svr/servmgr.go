@@ -127,6 +127,7 @@ func (sm *serviceMgr) Relay(conn net.Conn, token *accessToken) {
 	b := sm.getBackend(token.dst)
 	if b == nil {
 		base.Log(`sm.Relay: backend "%s" not found`, token.dst)
+		ra.Disconnect(conn)
 		conn.Close()
 		return
 	}
