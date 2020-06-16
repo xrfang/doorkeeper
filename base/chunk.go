@@ -9,10 +9,11 @@ import (
 )
 
 const (
-	CT_CLS = 0 //关闭连接
-	CT_DAT = 1 //数据传输
-	CT_QRY = 2 //询问开放端口
-	CT_PNG = 3 //通道心跳检测
+	CT_CLS = 0    //关闭连接
+	CT_DAT = 1    //数据传输
+	CT_QRY = 2    //询问开放端口
+	CT_PNG = 3    //通道心跳检测
+	MTU    = 4000 //传输块长度必须小于4096，因为包头表示长度用了12bit
 )
 
 type Chunk struct {
@@ -69,7 +70,7 @@ func (c *Chunk) Recv(conn *net.TCPConn) (err error) {
 	defer func() {
 		assert(conn.SetReadDeadline(time.Time{}))
 	}()
-	buf := make([]byte, 4096)
+	buf := make([]byte, MTU)
 	getAddr := func(isV6 bool) *net.TCPAddr {
 		var addr net.TCPAddr
 		alen := 6 //port + IPv4长度

@@ -60,7 +60,7 @@ func (p *proxy) addConn(src, dst *net.TCPAddr) (c *net.TCPConn) {
 			}
 			p.delConn(src)
 		}()
-		buf := make([]byte, 4096)
+		buf := make([]byte, base.MTU)
 		for p.isAlive() {
 			n, err := conn.Read(buf)
 			assert(err)
