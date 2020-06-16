@@ -98,7 +98,7 @@ func (b *backend) addConn(conn net.Conn) {
 		if at == nil {
 			panic(errors.New("no access"))
 		}
-		buf := make([]byte, 4096)
+		buf := make([]byte, 4000) //buf长度必须小于4096，因为包头表示长度用了12bit
 		for {
 			n, err := c.Read(buf)
 			assert(err)
