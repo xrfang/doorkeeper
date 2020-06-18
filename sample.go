@@ -20,7 +20,6 @@ client:             # 客户端配置
   svr_port: 35357   # 服务端（DKS）的服务端口
   name:             # 客户端名称
   auth:             # 共享密钥
-  max_conn: 9       # 最大连接数
   lan_nets: []      # 本地网络定义（用于端口扫描，CIDR格式的数组）
 logging:
   path: ../log      # LOG文件目录（相对目录基于本配置文件）

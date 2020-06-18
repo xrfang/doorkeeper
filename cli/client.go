@@ -16,7 +16,6 @@ type Config struct {
 	SvrHost string   `yaml:"svr_host"`
 	SvrPort int      `yaml:"svr_port"`
 	Auth    string   `yaml:"auth"`
-	MaxConn int      `yaml:"max_conn"`
 	LanNets []string `yaml:"lan_nets"`
 }
 
