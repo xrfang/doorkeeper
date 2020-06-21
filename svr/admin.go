@@ -10,6 +10,9 @@ import (
 
 func startAdminIntf(cf Config) {
 	http.HandleFunc("/", controller(cf))
+	http.HandleFunc("/help/", helper(cf))
+	http.HandleFunc("/auths/", auths(cf))
+	http.HandleFunc("/conns/", conns(cf))
 	adm := http.Server{
 		Addr:         fmt.Sprintf(":%d", cf.AdminPort),
 		ReadTimeout:  time.Minute,

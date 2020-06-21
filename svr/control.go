@@ -13,36 +13,7 @@ import (
 	"github.com/pquerna/otp/totp"
 )
 
-/**
-访问URL的路径部分即控制命令，格式定义如下：
-
-	/otp/name/port/ip
-
-其中：
-  - otp:  一次性密码，由FreeOTP等工具生成
-  - name: 需访问的后端的名称
-  - port: 目标端口号
-  - ip:   目标地址，若不提供，默认为127.0.0.1，即DK客户端所在机器。
-		  该值若为*，表示需要查询打开指定端口的内网所有IP。
-
-如果只提供了otp：
-  - 如果使用OPTIONS方法：列出当前授权令牌的来源以及目标地址
-  - 如果使用DELETE方法：删除所有授权令牌
-  - 否则：列出所有后端名称及当前在线状态
-如果只提供了otp和name：
-  - 如果使用DELETE方法：指令该后端删除所有活跃连接
-  - 否则：列出指定后端的所有连接
-
-返回约定：
-
-- 发生在任何错误，例如OTP不正确、后端名字不正确、端口非法等，一律返回HTTP/404。
-- 如命令执行成功，返回HTTP/200。内容分两种情况：
-  - IP不是"*"：内容分3行，第一行为"OK"；第二行为授权空闲超时时间；第三行为
-    授权终止时间。时间格式为RFC3339。
-  - IP是"*"：内容首行为"OK"或"ERR"。若为OK，后续行为打开指定端口的IP列表，
-	一行一个IP；若为ERR，后续行为错误原因
-*/
-
+/* 访问/help/<otp>获取帮助 */
 func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 	fwr := regexp.MustCompile(`for=(?:["[])*([0-9a-fA-F:.]+)`)
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -55,27 +26,12 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 		switch len(s) {
 		case 1:
 			fmt.Fprintln(w, "OK")
-			switch r.Method {
-			case "OPTIONS":
-				auths := ra.getSummary()
-				if len(auths) == 0 {
-					fmt.Fprintln(w, "no active authorization")
-				} else {
-					for _, a := range auths {
-						fmt.Fprintln(w, a)
-					}
+			for n := range cf.Auth {
+				stat := "offline"
+				if sm.getBackend(n) != nil {
+					stat = "online"
 				}
-			case "DELETE":
-				ra.flush()
-				fmt.Fprintln(w, "all authorization revoked")
-			default:
-				for n := range cf.Auth {
-					stat := "offline"
-					if sm.getBackend(n) != nil {
-						stat = "online"
-					}
-					fmt.Fprintf(w, "%s: %s\n", n, stat)
-				}
+				fmt.Fprintf(w, "%s: %s\n", n, stat)
 			}
 			return
 		case 2:
