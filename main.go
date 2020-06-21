@@ -44,6 +44,7 @@ func main() {
 		}
 		return
 	}
+	svr.VerInfo = verinfo()
 	loadConfig(*cfg)
 	if *init {
 		if cf.Mode == "server" {

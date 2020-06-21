@@ -9,8 +9,10 @@ import (
 	"github.com/pquerna/otp/totp"
 )
 
+var VerInfo string
+
 const helptxt = `
-How to use DoorKeepr
+How to use DoorKeeper <VER>
 
 1. Request access to a site:
    - request SSH access for the gateway host of site "test":
@@ -40,7 +42,8 @@ How to use DoorKeepr
 `
 
 func helper(cf Config) func(http.ResponseWriter, *http.Request) {
-	usage := strings.ReplaceAll(helptxt, "<PADM>", strconv.Itoa(cf.AdminPort))
+	usage := strings.ReplaceAll(helptxt, "<VER>", VerInfo)
+	usage = strings.ReplaceAll(usage, "<PADM>", strconv.Itoa(cf.AdminPort))
 	usage = strings.ReplaceAll(usage, "<PWRK>", strconv.Itoa(cf.ServePort))
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := strings.Trim(r.URL.Path[6:], " /\t")
