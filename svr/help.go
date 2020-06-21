@@ -49,7 +49,7 @@ func helper(cf Config) func(http.ResponseWriter, *http.Request) {
 		help := usage
 		host := strings.Split(r.Host, ":")[0]
 		if host != "" {
-			help = strings.ReplaceAll(help, "dksvr:", host+":")
+			help = strings.ReplaceAll(help, "dksvr", host)
 		}
 		path := strings.Trim(r.URL.Path[6:], " /\t")
 		if !totp.Validate(path, cf.OTP.Key) {
