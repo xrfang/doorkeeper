@@ -20,6 +20,7 @@ type Config struct {
 }
 
 type proxy struct {
+	nets []*net.IPNet
 	live bool
 	serv *net.TCPConn
 	dsts map[string]*net.TCPConn
@@ -41,6 +42,17 @@ func (p *proxy) setLive(stat bool) {
 func (p *proxy) addConn(src, dst *net.TCPAddr) (c *net.TCPConn) {
 	p.Lock()
 	defer p.Unlock()
+	allowed := false
+	for _, n := range p.nets {
+		if n.Contains(dst.IP) {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		p.delConn(src)
+		return nil
+	}
 	base.Dbg("proxy: %s <=> %s", src, dst)
 	conn, err := net.Dial("tcp", dst.String())
 	if err != nil {
@@ -110,6 +122,14 @@ func (p *proxy) run(cf Config) {
 	assert(err)
 	base.Log("connected to %s", addr)
 	p.Lock()
+	_, lo, _ := net.ParseCIDR("127.0.0.1/8")
+	p.nets = []*net.IPNet{lo}
+	for _, n := range cf.LanNets {
+		_, cidr, _ := net.ParseCIDR(n)
+		if cidr != nil {
+			p.nets = append(p.nets, cidr)
+		}
+	}
 	p.serv = conn.(*net.TCPConn)
 	p.Unlock()
 	p.setLive(true)
