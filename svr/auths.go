@@ -10,9 +10,8 @@ import (
 
 func auths(cf Config) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		path := strings.Trim(r.URL.Path, " /\t")
-		s := strings.Split(path, "/")
-		if len(s) == 0 || !totp.Validate(s[0], cf.OTP.Key) {
+		path := strings.Trim(r.URL.Path[6:], " /\t")
+		if !totp.Validate(path, cf.OTP.Key) {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
@@ -24,6 +23,11 @@ func auths(cf Config) func(http.ResponseWriter, *http.Request) {
 		}
 		for _, a := range auths {
 			fmt.Fprintln(w, a)
+		}
+		_, delete := r.URL.Query()["delete"]
+		if delete {
+			ra.flush()
+			fmt.Fprintln(w, "all authorization revoked")
 		}
 	}
 }
