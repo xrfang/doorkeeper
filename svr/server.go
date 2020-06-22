@@ -8,12 +8,11 @@ import (
 )
 
 type Config struct {
-	AdminPort int  `yaml:"admin_port"`
-	ServePort int  `yaml:"serve_port"`
-	Handshake int  `yaml:"handshake"`
-	IdleClose int  `yaml:"idle_close"`
-	AuthTime  int  `yaml:"auth_time"`
-	M2MIntf   bool `yaml:"m2m_intf"`
+	AdminPort int `yaml:"admin_port"`
+	ServePort int `yaml:"serve_port"`
+	Handshake int `yaml:"handshake"`
+	IdleClose int `yaml:"idle_close"`
+	AuthTime  int `yaml:"auth_time"`
 	OTP       struct {
 		Issuer string `yaml:"issuer"`
 		Key    string `yaml:"key"`

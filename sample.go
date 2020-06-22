@@ -10,7 +10,6 @@ server:             # 服务端配置
   handshake: 10     # 握手时间窗口（秒）
   idle_close: 600   # 空闲工作连接时效（秒）
   auth_time: 3600   # 连接授权最长时限（秒）
-  m2m_intf: false   # 是否启用本地M2M接口
   otp:              # 基于OTP的API访问控制
     issuer:         # 签发机构（仅显示用途，默认为'Door Keeper'）
     key:            # 密钥

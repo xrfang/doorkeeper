@@ -24,9 +24,6 @@ func startAdminIntf(cf Config) {
 		if totp.Validate(otp, cf.OTP.Key) {
 			return true
 		}
-		if !cf.M2MIntf {
-			return false
-		}
 		host, _, _ := net.SplitHostPort(r.RemoteAddr)
 		ip := net.ParseIP(host)
 		if ip == nil || !ip.IsLoopback() {
