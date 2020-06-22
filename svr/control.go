@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/pquerna/otp/totp"
 )
 
 /* 访问/help/<otp>获取帮助 */
@@ -19,7 +17,7 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := strings.Trim(r.URL.Path, " /\t")
 		s := strings.Split(path, "/")
-		if len(s) == 0 || !totp.Validate(s[0], cf.OTP.Key) {
+		if len(s) == 0 || !allowed(r, s[0]) {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}

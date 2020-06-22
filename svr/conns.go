@@ -5,15 +5,13 @@ import (
 	"net"
 	"net/http"
 	"strings"
-
-	"github.com/pquerna/otp/totp"
 )
 
 func conns(cf Config) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := strings.Trim(r.URL.Path[6:], " /\t")
 		s := strings.Split(path, "/")
-		if len(s) != 2 || !totp.Validate(s[0], cf.OTP.Key) {
+		if len(s) != 2 || !allowed(r, s[0]) {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}

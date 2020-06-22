@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-
-	"github.com/pquerna/otp/totp"
 )
 
 func auths(cf Config) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := strings.Trim(r.URL.Path[6:], " /\t")
-		if !totp.Validate(path, cf.OTP.Key) {
+		if !allowed(r, path) {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}

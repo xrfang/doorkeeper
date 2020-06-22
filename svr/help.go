@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
-	"github.com/pquerna/otp/totp"
 )
 
 var VerInfo string
@@ -52,7 +50,7 @@ func helper(cf Config) func(http.ResponseWriter, *http.Request) {
 			help = strings.ReplaceAll(help, "dksvr", host)
 		}
 		path := strings.Trim(r.URL.Path[6:], " /\t")
-		if !totp.Validate(path, cf.OTP.Key) {
+		if !allowed(r, path) {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
