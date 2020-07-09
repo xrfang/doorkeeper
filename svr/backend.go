@@ -98,6 +98,11 @@ func (b *backend) addConn(conn net.Conn) {
 		if at == nil {
 			panic(errors.New("no access"))
 		}
+		base.Chunk{
+			Type: base.CT_DAT,
+			Src:  src,
+			Dst:  at.addr,
+		}.Send(b.serv)
 		buf := make([]byte, base.MTU)
 		for {
 			n, err := c.Read(buf)
