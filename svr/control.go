@@ -47,7 +47,7 @@ func controller(cf Config) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 		port, _ := strconv.Atoi(s[2])
-		if port < 0 || port > 65535 {
+		if port <= 0 || port > 65535 {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
