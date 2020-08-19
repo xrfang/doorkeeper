@@ -17,6 +17,7 @@ type Config struct {
 	SvrPort int      `yaml:"svr_port"`
 	Auth    string   `yaml:"auth"`
 	LanNets []string `yaml:"lan_nets"`
+	MacScan int      `yaml:"mac_scan"`
 }
 
 type proxy struct {
@@ -190,7 +191,7 @@ func (p *proxy) run(cf Config) {
 				Src:  c.Src,
 				Dst:  c.Src,
 			}
-			hosts := portScan(c.Dst.Port, cf.LanNets)
+			hosts := portScan(c.Dst.Port, cf.LanNets, cf.MacScan)
 			var msg bytes.Buffer
 			if len(hosts) == 0 {
 				fmt.Fprintln(&msg, "ERR")

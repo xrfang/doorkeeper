@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func portScan(port int, cidrs []string) (ips []string) {
+func portScan(port int, cidrs []string, timeout int) (ips []string) {
 	resc := make(chan string)
 	go func() { //收集结果
 		for {
@@ -24,6 +24,7 @@ func portScan(port int, cidrs []string) (ips []string) {
 	)
 	task := make(chan string, THREADS)
 	var wg sync.WaitGroup
+	tts := time.Duration(timeout) * time.Millisecond
 	for i := 0; i < THREADS; i++ {
 		wg.Add(1)
 		go func() {
@@ -37,6 +38,7 @@ func portScan(port int, cidrs []string) (ips []string) {
 				conn, err := net.DialTimeout("tcp", target, TIMEOUT)
 				if err == nil {
 					conn.Close()
+					ip += getOUI(ip, tts)
 					resc <- ip
 				}
 			}

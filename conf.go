@@ -55,6 +55,12 @@ func loadConfig(fn string) {
 		if cf.Client.SvrPort <= 0 || cf.Client.SvrPort > 65535 {
 			cf.Client.SvrPort = 35357
 		}
+		if cf.Client.MacScan < 100 {
+			cf.Client.MacScan = 1000
+		}
+		if cf.Client.MacScan > 5000 {
+			cf.Client.MacScan = 5000
+		}
 	case "server":
 		if cf.Server.AdminPort <= 0 || cf.Server.AdminPort > 65535 {
 			cf.Server.AdminPort = 3535
